@@ -1,0 +1,12 @@
+[package]
+name = "dumb-benefits"
+version = "0.1.0"
+entrypoint = "src/index.ts"
+compatibility_date = "2026-01-11"
+
+[dependencies]
+hono = ">=4.0.0"
+typescript = ">=5.0.0"
+
+[devDependencies]
+bun-types = ">=1.0.0"
