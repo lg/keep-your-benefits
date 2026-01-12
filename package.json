@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "start": "bun run src/index.ts",
-    "dev": "bun run src/index.ts",
+    "dev": "bun run src/index.ts & cd client && bun run dev",
+    "dev:all": "bun run src/index.ts & cd client && bun run dev",
     "build": "cd client && bun run build",
     "lint": "oxlint",
     "check": "oxlint --import-plugin --typescript-plugin --jsx-a11y-plugin",

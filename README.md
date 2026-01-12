@@ -98,12 +98,18 @@ cd client && bun install && cd ..
 ### Running the Application
 
 ```bash
-# Terminal 1: Start the backend API (port 3000)
+# Run both servers (single terminal, both run in background)
+bun run dev
+
+# Or run separately:
+# Terminal 1: Backend API (port 3000)
 bun run src/index.ts
 
-# Terminal 2: Start the frontend dev server (port 5173)
+# Terminal 2: Frontend dev server (port 5173)
 cd client && bun run dev
 ```
+
+The frontend proxies API requests to the backend automatically in development.
 
 Then open http://localhost:5173 in your browser.
 
