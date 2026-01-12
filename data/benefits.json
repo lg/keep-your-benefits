@@ -26,7 +26,7 @@
       "currentUsed": 0,
       "resetFrequency": "annual",
       "activationRequired": true,
-      "activationAcknowledged": false,
+      "activationAcknowledged": true,
       "startDate": "2026-01-01T00:00:00Z",
       "endDate": "2026-12-31T23:59:59Z",
       "notes": "",
