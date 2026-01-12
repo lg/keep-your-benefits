@@ -10,6 +10,7 @@ This document provides instructions for AI agents working on the Credit Card Ben
 4. **UTC timezone** - All date handling assumes UTC
 5. **Calendar year for Amex, anniversary for Chase** - Reset dates vary by card
 6. **No automatic commits** - Never commit changes unless explicitly instructed by the user
+7. **Git commands require explicit permission** - Never run `git commit`, `git push`, or any git command that modifies the repository without the user explicitly asking you to do so
 
 ## Development Commands
 
