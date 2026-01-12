@@ -1,23 +1,28 @@
 import { useState } from 'react';
-import { Benefit, Stats } from '../types';
+import { Benefit, Stats, CreditCard } from '../types';
 import { BenefitCard } from '../components/BenefitCard';
+import { CardHeader } from '../components/CardHeader';
 import { EditModal } from '../components/EditModal';
 
 interface DashboardProps {
   benefits: Benefit[];
-  cards: { id: string; name: string; color: string }[];
+  cards: CreditCard[];
+  allBenefits: Benefit[];
   stats: Stats | null;
   onEditBenefit: (benefit: Benefit) => void;
-  onUpdateBenefit: (id: string, data: { currentUsed: number; notes: string }) => void;
+  onUpdateBenefit: (id: string, data: { currentUsed: number; notes: string; ignored?: boolean }) => void;
   onToggleActivation: (id: string) => void;
+  onToggleIgnored: (id: string, data: { ignored: boolean }) => void;
 }
 
 export function Dashboard({ 
   benefits, 
   cards, 
+  allBenefits,
   stats, 
   onUpdateBenefit,
-  onToggleActivation 
+  onToggleActivation,
+  onToggleIgnored
 }: DashboardProps) {
   const [editingBenefit, setEditingBenefit] = useState<Benefit | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -31,9 +36,18 @@ export function Dashboard({
     onUpdateBenefit(id, data);
   };
 
+  const getCardStats = (_card: CreditCard, cardBenefits: Benefit[]) => ({
+    totalValue: cardBenefits.reduce((sum, b) => sum + b.creditAmount, 0),
+    usedValue: cardBenefits.reduce((sum, b) => sum + b.currentUsed, 0),
+    completedCount: cardBenefits.filter(b => b.status === 'completed').length,
+    pendingCount: cardBenefits.filter(b => b.status === 'pending').length,
+    missedCount: cardBenefits.filter(b => b.status === 'missed').length,
+  });
+
   const benefitsByCard = cards.map(card => ({
     card,
-    benefits: benefits.filter(b => b.cardId === card.id)
+    benefits: benefits.filter(b => b.cardId === card.id),
+    allBenefits: allBenefits.filter(b => b.cardId === card.id)
   }));
 
   return (
@@ -63,18 +77,15 @@ export function Dashboard({
         </div>
       )}
 
-      {benefitsByCard.map(({ card, benefits: cardBenefits }) => (
+      {benefitsByCard.map(({ card, benefits: cardBenefits, allBenefits: cardAllBenefits }) => (
         cardBenefits.length > 0 && (
           <div key={card.id} className="mb-8">
-            <div 
-              className="rounded-lg p-4 mb-4"
-              style={{ backgroundColor: `${card.color}20`, borderLeft: `4px solid ${card.color}` }}
-            >
-              <h2 className="text-xl font-bold">{card.name}</h2>
-              <p className="text-slate-400 text-sm">
-                {cardBenefits.filter(b => b.status === 'completed').length} of {cardBenefits.length} benefits completed
-              </p>
-            </div>
+            <CardHeader 
+              card={card} 
+              stats={getCardStats(card, cardBenefits)}
+              allBenefits={cardAllBenefits}
+              onUpdateBenefit={onToggleIgnored}
+            />
             <div className="grid gap-4 md:grid-cols-2">
               {cardBenefits.map(benefit => (
                 <BenefitCard

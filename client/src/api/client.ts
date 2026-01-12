@@ -26,9 +26,12 @@ async function fetchApi<T>(endpoint: string, options?: RequestInit): Promise<T> 
 export const api = {
   getCards: () => fetchApi<CreditCard[]>('/cards'),
   
-  getBenefits: (cardId?: string) => {
-    const query = cardId ? `?cardId=${cardId}` : '';
-    return fetchApi<Benefit[]>(`/benefits${query}`);
+  getBenefits: (cardId?: string, includeIgnored?: boolean) => {
+    const params = new URLSearchParams();
+    if (cardId) params.set('cardId', cardId);
+    if (includeIgnored) params.set('includeIgnored', 'true');
+    const query = params.toString();
+    return fetchApi<Benefit[]>(`/benefits${query ? `?${query}` : ''}`);
   },
   
   getBenefit: (id: string) => fetchApi<Benefit>(`/benefits/${id}`),

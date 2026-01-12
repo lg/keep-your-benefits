@@ -74,6 +74,55 @@ describe('GET /api/benefits', () => {
     expect(res.status).toBe(200)
     expect(data.data).toHaveLength(0)
   })
+  
+  it('excludes ignored benefits by default', async () => {
+    // First ignore a benefit
+    await fetch(`${BASE_URL}/api/benefits/amex-uber`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ignored: true })
+    })
+    
+    const res = await fetch(`${BASE_URL}/api/benefits`)
+    const data = await res.json()
+    
+    expect(res.status).toBe(200)
+    expect(data.success).toBe(true)
+    const uberBenefit = data.data.find((b: any) => b.id === 'amex-uber')
+    expect(uberBenefit).toBeUndefined()
+    
+    // Reset
+    await fetch(`${BASE_URL}/api/benefits/amex-uber`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ignored: false })
+    })
+  })
+  
+  it('includes ignored benefits when includeIgnored=true', async () => {
+    // First ignore a benefit
+    await fetch(`${BASE_URL}/api/benefits/amex-uber`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ignored: true })
+    })
+    
+    const res = await fetch(`${BASE_URL}/api/benefits?includeIgnored=true`)
+    const data = await res.json()
+    
+    expect(res.status).toBe(200)
+    expect(data.success).toBe(true)
+    const uberBenefit = data.data.find((b: any) => b.id === 'amex-uber')
+    expect(uberBenefit).toBeDefined()
+    expect(uberBenefit.ignored).toBe(true)
+    
+    // Reset
+    await fetch(`${BASE_URL}/api/benefits/amex-uber`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ignored: false })
+    })
+  })
 })
 
 describe('GET /api/benefits/:id', () => {
@@ -184,6 +233,46 @@ describe('PATCH /api/benefits/:id', () => {
       body: JSON.stringify({ currentUsed: 0, status: 'pending' })
     })
   })
+  
+  it('sets ignored to true', async () => {
+    const res = await fetch(`${BASE_URL}/api/benefits/amex-uber`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ignored: true })
+    })
+    const data = await res.json()
+    
+    expect(res.status).toBe(200)
+    expect(data.success).toBe(true)
+    expect(data.data.ignored).toBe(true)
+    
+    // Reset
+    await fetch(`${BASE_URL}/api/benefits/amex-uber`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ignored: false })
+    })
+  })
+  
+  it('sets ignored to false', async () => {
+    // First ignore it
+    await fetch(`${BASE_URL}/api/benefits/amex-uber`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ignored: true })
+    })
+    
+    const res = await fetch(`${BASE_URL}/api/benefits/amex-uber`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ignored: false })
+    })
+    const data = await res.json()
+    
+    expect(res.status).toBe(200)
+    expect(data.success).toBe(true)
+    expect(data.data.ignored).toBe(false)
+  })
 })
 
 describe('PATCH /api/benefits/:id/activate', () => {
@@ -258,5 +347,34 @@ describe('GET /api/stats', () => {
     expect(data.data.completedCount).toBeGreaterThanOrEqual(0)
     expect(data.data.pendingCount).toBeGreaterThanOrEqual(0)
     expect(data.data.missedCount).toBeGreaterThanOrEqual(0)
+  })
+  
+  it('excludes ignored benefits from stats', async () => {
+    // Get initial stats
+    const beforeRes = await fetch(`${BASE_URL}/api/stats`)
+    const beforeData = await beforeRes.json()
+    const initialTotal = beforeData.data.totalBenefits
+    const initialValue = beforeData.data.totalValue
+    
+    // Ignore a benefit
+    await fetch(`${BASE_URL}/api/benefits/amex-uber`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ignored: true })
+    })
+    
+    // Get stats after ignoring
+    const afterRes = await fetch(`${BASE_URL}/api/stats`)
+    const afterData = await afterRes.json()
+    
+    expect(afterData.data.totalBenefits).toBe(initialTotal - 1)
+    expect(afterData.data.totalValue).toBe(initialValue - 200)
+    
+    // Reset
+    await fetch(`${BASE_URL}/api/benefits/amex-uber`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ignored: false })
+    })
   })
 })

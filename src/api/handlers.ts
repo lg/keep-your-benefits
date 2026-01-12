@@ -1,6 +1,6 @@
 import { Context, Next } from 'hono';
 import { getCards, getBenefits, getBenefitById, updateBenefit, getUpcomingExpirations } from '../models/storage';
-import { updateBenefitUsage, toggleActivation, getAllBenefitsWithCards, getStats } from '../services/benefits';
+import { updateBenefitUsage, toggleActivation, getStats } from '../services/benefits';
 
 type JsonStatus = 200 | 400 | 404 | 500;
 
@@ -20,7 +20,8 @@ export async function getCardsHandler(c: Context) {
 export async function getBenefitsHandler(c: Context) {
   try {
     const cardId = c.req.query('cardId');
-    const benefits = cardId ? getBenefits(cardId) : getAllBenefitsWithCards();
+    const includeIgnored = c.req.query('includeIgnored') === 'true';
+    const benefits = getBenefits(cardId, includeIgnored);
     return jsonResponse(c, { success: true, data: benefits });
   } catch {
     return jsonResponse(c, { success: false, error: 'Failed to fetch benefits' }, 500);

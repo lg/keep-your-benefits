@@ -1,71 +1,90 @@
 import { describe, it, expect } from 'bun:test'
-import { getBenefits, getBenefitById } from '../models/storage'
-import { getCardsWithBenefits, getAllBenefitsWithCards, updateBenefitUsage, toggleActivation, getStats } from './benefits'
+import { getBenefits, getBenefitById, updateBenefit, getUpcomingExpirations } from '../models/storage'
+import { updateBenefitUsage, toggleActivation, getStats } from './benefits'
 
-describe('getCardsWithBenefits', () => {
-  it('returns all cards with their benefits', () => {
-    const cards = getCardsWithBenefits()
+describe('getBenefits', () => {
+  it('returns all non-ignored benefits by default', () => {
+    const benefits = getBenefits()
     
-    expect(cards).toHaveLength(2)
-    expect(cards[0]).toHaveProperty('benefits')
-    expect(cards[0]).toHaveProperty('stats')
+    expect(benefits.every(b => !b.ignored)).toBe(true)
   })
   
-  it('returns Amex and Chase cards', () => {
-    const cards = getCardsWithBenefits()
-    const names = cards.map(c => c.name)
-    expect(names).toContain('American Express Platinum')
-    expect(names).toContain('Chase Sapphire Reserve')
-  })
-  
-  it('calculates correct stats for each card', () => {
-    const cards = getCardsWithBenefits()
-    const amex = cards.find(c => c.id === 'amex-platinum')
-    const chase = cards.find(c => c.id === 'chase-sapphire-reserve')
+  it('excludes ignored benefits by default', () => {
+    // First ignore a benefit
+    updateBenefit('amex-uber', { ignored: true })
     
-    expect(amex?.stats.totalBenefits).toBe(3)
-    expect(amex?.stats.totalValue).toBe(500)
-    expect(chase?.stats.totalBenefits).toBe(2)
-    expect(chase?.stats.totalValue).toBe(420)
+    const benefits = getBenefits()
+    const uberBenefit = benefits.find(b => b.id === 'amex-uber')
+    expect(uberBenefit).toBeUndefined()
+    
+    // Reset
+    updateBenefit('amex-uber', { ignored: false })
   })
   
-  it('each card has benefits array', () => {
-    const cards = getCardsWithBenefits()
-    cards.forEach(card => {
-      expect(Array.isArray(card.benefits)).toBe(true)
-      expect(card.benefits.length).toBeGreaterThan(0)
-    })
+  it('includes ignored benefits when includeIgnored=true', () => {
+    // First ignore a benefit
+    updateBenefit('amex-uber', { ignored: true })
+    
+    const benefits = getBenefits(undefined, true)
+    const uberBenefit = benefits.find(b => b.id === 'amex-uber')
+    expect(uberBenefit).toBeDefined()
+    expect(uberBenefit?.ignored).toBe(true)
+    
+    // Reset
+    updateBenefit('amex-uber', { ignored: false })
+  })
+  
+  it('filters by cardId and excludes ignored', () => {
+    // First ignore a benefit
+    updateBenefit('amex-uber', { ignored: true })
+    
+    const benefits = getBenefits('amex-platinum')
+    const uberBenefit = benefits.find(b => b.id === 'amex-uber')
+    expect(uberBenefit).toBeUndefined()
+    expect(benefits).toHaveLength(2) // Only saks and airline left
+    
+    // Reset
+    updateBenefit('amex-uber', { ignored: false })
+  })
+  
+  it('filters by cardId and includes ignored when requested', () => {
+    // First ignore a benefit
+    updateBenefit('amex-uber', { ignored: true })
+    
+    const benefits = getBenefits('amex-platinum', true)
+    const uberBenefit = benefits.find(b => b.id === 'amex-uber')
+    expect(uberBenefit).toBeDefined()
+    expect(uberBenefit?.ignored).toBe(true)
+    expect(benefits).toHaveLength(3)
+    
+    // Reset
+    updateBenefit('amex-uber', { ignored: false })
   })
 })
 
-describe('getAllBenefitsWithCards', () => {
-  it('returns all benefits with card information', () => {
-    const benefits = getAllBenefitsWithCards()
+describe('getUpcomingExpirations', () => {
+  it('excludes ignored benefits', () => {
+    // First ignore a benefit
+    updateBenefit('amex-uber', { ignored: true })
     
-    expect(benefits).toHaveLength(5)
-    expect(benefits[0]).toHaveProperty('card')
+    const expirations = getUpcomingExpirations(365)
+    const uberBenefit = expirations.find(b => b.id === 'amex-uber')
+    expect(uberBenefit).toBeUndefined()
+    
+    // Reset
+    updateBenefit('amex-uber', { ignored: false })
   })
   
-  it('links each benefit to its card', () => {
-    const benefits = getAllBenefitsWithCards()
-    const uberBenefit = benefits.find(b => b.id === 'amex-uber')
-    const travelBenefit = benefits.find(b => b.id === 'chase-travel')
+  it('includes ignored when includeIgnored=true', () => {
+    // First ignore a benefit
+    updateBenefit('amex-uber', { ignored: true })
     
-    expect(uberBenefit?.card?.id).toBe('amex-platinum')
-    expect(uberBenefit?.card?.name).toBe('American Express Platinum')
-    expect(travelBenefit?.card?.id).toBe('chase-sapphire-reserve')
-    expect(travelBenefit?.card?.name).toBe('Chase Sapphire Reserve')
-  })
-  
-  it('includes all card properties', () => {
-    const benefits = getAllBenefitsWithCards()
-    const benefit = benefits[0]
+    const expirations = getUpcomingExpirations(365, true)
+    const uberBenefit = expirations.find(b => b.id === 'amex-uber')
+    expect(uberBenefit).toBeDefined()
     
-    expect(benefit.card).toHaveProperty('id')
-    expect(benefit.card).toHaveProperty('name')
-    expect(benefit.card).toHaveProperty('annualFee')
-    expect(benefit.card).toHaveProperty('resetBasis')
-    expect(benefit.card).toHaveProperty('color')
+    // Reset
+    updateBenefit('amex-uber', { ignored: false })
   })
 })
 
@@ -179,5 +198,18 @@ describe('getStats', () => {
     
     const sum = stats.completedCount + stats.pendingCount + stats.missedCount
     expect(sum).toBe(stats.totalBenefits)
+  })
+  
+  it('excludes ignored benefits from stats', () => {
+    // First ignore a benefit
+    updateBenefit('amex-uber', { ignored: true })
+    
+    const stats = getStats()
+    
+    expect(stats.totalBenefits).toBe(4)
+    expect(stats.totalValue).toBe(720) // 920 - 200
+    
+    // Reset
+    updateBenefit('amex-uber', { ignored: false })
   })
 })

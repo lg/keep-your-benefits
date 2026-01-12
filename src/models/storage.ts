@@ -29,12 +29,17 @@ export function getCardById(id: string) {
   return data.cards.find(card => card.id === id);
 }
 
-export function getBenefits(cardId?: string) {
+export function getBenefits(cardId?: string, includeIgnored?: boolean) {
   const data = readData();
-  if (cardId) {
-    return data.benefits.filter(b => b.cardId === cardId);
+  const benefits = cardId 
+    ? data.benefits.filter(b => b.cardId === cardId) 
+    : data.benefits;
+  
+  if (includeIgnored) {
+    return benefits;
   }
-  return data.benefits;
+  
+  return benefits.filter(b => !b.ignored);
 }
 
 export function getBenefitById(id: string) {
@@ -71,15 +76,20 @@ export function updateBenefitPeriod(benefitId: string, periodId: string, updates
   return benefit.periods[periodIndex];
 }
 
-export function getUpcomingExpirations(days: number = 30) {
+export function getUpcomingExpirations(days: number = 30, includeIgnored?: boolean) {
   const data = readData();
   const now = new Date();
   const cutoff = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
   
-  return data.benefits
+  let benefits = data.benefits
     .filter(b => {
       const endDate = new Date(b.endDate);
       return endDate > now && endDate <= cutoff && b.status === 'pending';
-    })
-    .sort((a, b) => new Date(a.endDate).getTime() - new Date(b.endDate).getTime());
+    });
+  
+  if (!includeIgnored) {
+    benefits = benefits.filter(b => !b.ignored);
+  }
+  
+  return benefits.sort((a, b) => new Date(a.endDate).getTime() - new Date(b.endDate).getTime());
 }

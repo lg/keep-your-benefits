@@ -7,6 +7,7 @@ import { api } from './api/client';
 function App() {
   const [cards, setCards] = React.useState<CreditCard[]>([]);
   const [benefits, setBenefits] = React.useState<Benefit[]>([]);
+  const [allBenefits, setAllBenefits] = React.useState<Benefit[]>([]);
   const [stats, setStats] = React.useState<Stats | null>(null);
   const [selectedCardId, setSelectedCardId] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(true);
@@ -22,6 +23,7 @@ function App() {
       ]);
       setCards(cardsData);
       setBenefits(benefitsData);
+      setAllBenefits(benefitsData);
       setStats(statsData);
     } catch (err) {
       setError((err as Error).message);
@@ -30,14 +32,29 @@ function App() {
     }
   }, []);
 
+  const loadAllBenefitsForCard = React.useCallback(async (cardId: string) => {
+    const allBenefitsData = await api.getBenefits(cardId, true);
+    setAllBenefits(prev => {
+      const otherBenefits = prev.filter(b => b.cardId !== cardId);
+      return [...otherBenefits, ...allBenefitsData];
+    });
+  }, []);
+
   React.useEffect(() => {
     loadData();
   }, [loadData]);
+
+  React.useEffect(() => {
+    if (selectedCardId) {
+      loadAllBenefitsForCard(selectedCardId);
+    }
+  }, [selectedCardId, loadAllBenefitsForCard]);
 
   const handleUpdateBenefit = async (id: string, data: { currentUsed: number; notes: string }) => {
     try {
       const updated = await api.updateBenefit(id, data);
       setBenefits(prev => prev.map(b => b.id === id ? updated : b));
+      setAllBenefits(prev => prev.map(b => b.id === id ? updated : b));
       const statsData = await api.getStats();
       setStats(statsData);
     } catch (err) {
@@ -49,8 +66,24 @@ function App() {
     try {
       const updated = await api.toggleActivation(id);
       setBenefits(prev => prev.map(b => b.id === id ? updated : b));
+      setAllBenefits(prev => prev.map(b => b.id === id ? updated : b));
     } catch (err) {
       console.error('Failed to toggle activation:', err);
+    }
+  };
+
+  const handleToggleIgnored = async (id: string, data: { ignored: boolean }) => {
+    try {
+      await api.updateBenefit(id, data);
+      setAllBenefits(prev => prev.map(b => b.id === id ? { ...b, ignored: data.ignored } : b));
+      const [benefitsData, statsData] = await Promise.all([
+        api.getBenefits(),
+        api.getStats(),
+      ]);
+      setBenefits(benefitsData);
+      setStats(statsData);
+    } catch (err) {
+      console.error('Failed to toggle ignored:', err);
     }
   };
 
@@ -81,6 +114,9 @@ function App() {
   const selectedCard = selectedCardId ? cards.find(c => c.id === selectedCardId) : null;
   const selectedCardBenefits = selectedCardId 
     ? benefits.filter(b => b.cardId === selectedCardId)
+    : [];
+  const selectedCardAllBenefits = selectedCardId
+    ? allBenefits.filter(b => b.cardId === selectedCardId)
     : [];
 
   return (
@@ -129,19 +165,23 @@ function App() {
           <CardDetail
             card={selectedCard}
             benefits={selectedCardBenefits}
+            allBenefits={selectedCardAllBenefits}
             onBack={() => setSelectedCardId(null)}
             onEditBenefit={() => {}}
             onUpdateBenefit={handleUpdateBenefit}
             onToggleActivation={handleToggleActivation}
+            onToggleIgnored={handleToggleIgnored}
           />
         ) : (
           <Dashboard
             benefits={benefits}
             cards={cards}
+            allBenefits={allBenefits}
             stats={stats}
             onEditBenefit={() => {}}
             onUpdateBenefit={handleUpdateBenefit}
             onToggleActivation={handleToggleActivation}
+            onToggleIgnored={handleToggleIgnored}
           />
         )}
       </main>

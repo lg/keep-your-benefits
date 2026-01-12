@@ -32,6 +32,7 @@ export interface Benefit {
   category: string;
   periods?: BenefitPeriod[];
   card?: CreditCard;
+  ignored: boolean;
 }
 
 export interface BenefitWithCard extends Benefit {
@@ -51,4 +52,5 @@ export interface UpdateBenefitRequest {
   currentUsed?: number;
   notes?: string;
   status?: 'pending' | 'completed' | 'missed';
+  ignored?: boolean;
 }

@@ -26,9 +26,9 @@ export function getCardsWithBenefits() {
   });
 }
 
-export function getAllBenefitsWithCards() {
+export function getAllBenefitsWithCards(includeIgnored?: boolean) {
   const cards = getCards();
-  const benefits = getBenefits();
+  const benefits = getBenefits(undefined, includeIgnored);
   
   return benefits.map(benefit => {
     const card = cards.find(c => c.id === benefit.cardId);

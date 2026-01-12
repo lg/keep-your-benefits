@@ -7,18 +7,22 @@ import { EditModal } from '../components/EditModal';
 interface CardDetailProps {
   card: CreditCard;
   benefits: Benefit[];
+  allBenefits: Benefit[];
   onBack: () => void;
   onEditBenefit: (benefit: Benefit) => void;
-  onUpdateBenefit: (id: string, data: { currentUsed: number; notes: string }) => void;
+  onUpdateBenefit: (id: string, data: { currentUsed: number; notes: string; ignored?: boolean }) => void;
   onToggleActivation: (id: string) => void;
+  onToggleIgnored: (id: string, data: { ignored: boolean }) => void;
 }
 
 export function CardDetail ({ 
   card, 
   benefits, 
+  allBenefits,
   onBack, 
   onUpdateBenefit,
-  onToggleActivation 
+  onToggleActivation,
+  onToggleIgnored
 }: CardDetailProps) {
   const [editingBenefit, setEditingBenefit] = React.useState<Benefit | null>(null);
   const [isModalOpen, setIsModalOpen] = React.useState(false);
@@ -49,7 +53,12 @@ export function CardDetail ({
         ← Back to Dashboard
       </button>
 
-      <CardHeader card={card} stats={stats} />
+      <CardHeader 
+        card={card} 
+        stats={stats} 
+        allBenefits={allBenefits}
+        onUpdateBenefit={onToggleIgnored}
+      />
 
       <div className="grid gap-4 md:grid-cols-2">
         {benefits.map(benefit => (

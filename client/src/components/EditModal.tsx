@@ -5,7 +5,7 @@ interface EditModalProps {
   benefit: Benefit | null;
   isOpen: boolean;
   onClose: () => void;
-  onSave: (id: string, data: { currentUsed: number; notes: string }) => void;
+  onSave: (id: string, data: { currentUsed: number; notes: string; ignored?: boolean }) => void;
 }
 
 export function EditModal({ benefit, isOpen, onClose, onSave }: EditModalProps) {
@@ -40,6 +40,11 @@ export function EditModal({ benefit, isOpen, onClose, onSave }: EditModalProps) 
   const handleSave = () => {
     const usedValue = parseFloat(used) || 0;
     onSave(benefit.id, { currentUsed: usedValue, notes });
+    onClose();
+  };
+
+  const handleToggleIgnore = () => {
+    onSave(benefit.id, { currentUsed: parseFloat(used) || 0, notes, ignored: !benefit.ignored });
     onClose();
   };
 
@@ -99,6 +104,17 @@ export function EditModal({ benefit, isOpen, onClose, onSave }: EditModalProps) 
           />
         </div>
 
+        <div className="mb-4">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={!benefit.ignored}
+              onChange={handleToggleIgnore}
+              className="rounded border-slate-600 bg-slate-700 text-blue-500 focus:ring-blue-500"
+            />
+            <span className="text-sm">Show in list (uncheck to hide)</span>
+          </label>
+        </div>
 
         <div className="flex gap-2 justify-end">
           <button onClick={onClose} className="btn-secondary">

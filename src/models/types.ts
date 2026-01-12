@@ -31,6 +31,7 @@ export interface Benefit {
   status: 'pending' | 'completed' | 'missed';
   category: string;
   periods?: BenefitPeriod[];
+  ignored: boolean;
 }
 
 export interface BenefitsData {
@@ -42,6 +43,7 @@ export interface UpdateBenefitRequest {
   currentUsed?: number;
   notes?: string;
   status?: 'pending' | 'completed' | 'missed';
+  ignored?: boolean;
 }
 
 export interface UpdatePeriodRequest {
