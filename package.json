@@ -7,14 +7,23 @@
     "dev": "bun run src/index.ts",
     "build": "cd client && bun run build",
     "lint": "oxlint",
-    "check": "oxlint --import-plugin --typescript-plugin --jsx-a11y-plugin"
+    "check": "oxlint --import-plugin --typescript-plugin --jsx-a11y-plugin",
+    "test": "bun test",
+    "test:coverage": "bun test --coverage",
+    "test:watch": "bun test --watch",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:install": "playwright install chromium"
   },
   "dependencies": {
     "hono": ">=4.0.0"
   },
   "devDependencies": {
+    "@playwright/test": ">=1.40.0",
+    "@testing-library/react": ">=14.0.0",
     "@types/bun": "latest",
     "bun-types": ">=1.0.0",
+    "happy-dom": "^20.1.0",
     "oxlint": ">=0.5.0",
     "typescript": ">=5.0.0"
   }
