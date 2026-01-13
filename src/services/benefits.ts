@@ -39,7 +39,7 @@ export function getAllBenefitsWithCards(includeIgnored?: boolean) {
   });
 }
 
-export function updateBenefitUsage(id: string, used: number, notes?: string) {
+export function updateBenefitUsage(id: string, used: number, notes?: string, ignored?: boolean) {
   const benefit = getBenefitById(id);
   if (!benefit) {
     throw new Error('Benefit not found');
@@ -47,11 +47,17 @@ export function updateBenefitUsage(id: string, used: number, notes?: string) {
   
   const status = calculateBenefitStatus({ ...benefit, currentUsed: used });
   
-  return updateBenefit(id, {
+  const updateData: { currentUsed: number; notes?: string; status: 'pending' | 'completed' | 'missed'; ignored?: boolean } = {
     currentUsed: used,
     notes: notes ?? benefit.notes,
     status
-  });
+  };
+  
+  if (ignored !== undefined) {
+    updateData.ignored = ignored;
+  }
+  
+  return updateBenefit(id, updateData);
 }
 
 export function toggleActivation(id: string) {

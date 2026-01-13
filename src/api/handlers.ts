@@ -52,7 +52,7 @@ export async function updateBenefitHandler(c: Context) {
     }
     
     if (body.currentUsed !== undefined) {
-      const updated = updateBenefitUsage(id, body.currentUsed, body.notes);
+      const updated = updateBenefitUsage(id, body.currentUsed, body.notes, body.ignored);
       return jsonResponse(c, { success: true, data: updated });
     }
     

@@ -51,11 +51,21 @@ function App() {
     }
   }, [selectedCardId, loadAllBenefitsForCard]);
 
-  const handleUpdateBenefit = async (id: string, data: { currentUsed: number; notes: string }) => {
+  const handleUpdateBenefit = async (id: string, data: { currentUsed: number; notes: string; ignored?: boolean }) => {
     try {
       const updated = await api.updateBenefit(id, data);
-      setBenefits(prev => prev.map(b => b.id === id ? updated : b));
       setAllBenefits(prev => prev.map(b => b.id === id ? updated : b));
+      if (updated.ignored) {
+        setBenefits(prev => prev.filter(b => b.id !== id));
+      } else {
+        setBenefits(prev => {
+          const exists = prev.find(b => b.id === id);
+          if (exists) {
+            return prev.map(b => b.id === id ? updated : b);
+          }
+          return [...prev, updated];
+        });
+      }
       const statsData = await api.getStats();
       setStats(statsData);
     } catch (err) {

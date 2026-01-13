@@ -11,11 +11,13 @@ interface EditModalProps {
 export function EditModal({ benefit, isOpen, onClose, onSave }: EditModalProps) {
   const [used, setUsed] = React.useState('');
   const [notes, setNotes] = React.useState('');
+  const [ignored, setIgnored] = React.useState(false);
 
   React.useEffect(() => {
     if (benefit) {
       setUsed(benefit.currentUsed.toString());
       setNotes(benefit.notes);
+      setIgnored(benefit.ignored);
     }
   }, [benefit]);
 
@@ -39,12 +41,7 @@ export function EditModal({ benefit, isOpen, onClose, onSave }: EditModalProps) 
 
   const handleSave = () => {
     const usedValue = parseFloat(used) || 0;
-    onSave(benefit.id, { currentUsed: usedValue, notes });
-    onClose();
-  };
-
-  const handleToggleIgnore = () => {
-    onSave(benefit.id, { currentUsed: parseFloat(used) || 0, notes, ignored: !benefit.ignored });
+    onSave(benefit.id, { currentUsed: usedValue, notes, ignored });
     onClose();
   };
 
@@ -108,8 +105,8 @@ export function EditModal({ benefit, isOpen, onClose, onSave }: EditModalProps) 
           <label className="flex items-center gap-2 cursor-pointer">
             <input
               type="checkbox"
-              checked={!benefit.ignored}
-              onChange={handleToggleIgnore}
+              checked={!ignored}
+              onChange={() => setIgnored(!ignored)}
               className="rounded border-slate-600 bg-slate-700 text-blue-500 focus:ring-blue-500"
             />
             <span className="text-sm">Show in list (uncheck to hide)</span>
