@@ -10,8 +10,7 @@ interface CardDetailProps {
   allBenefits: Benefit[];
   onBack: () => void;
   onEditBenefit: (benefit: Benefit) => void;
-  onUpdateBenefit: (id: string, data: { currentUsed: number; notes: string; ignored?: boolean }) => void;
-  onToggleActivation: (id: string) => void;
+  onUpdateBenefit: (id: string, data: { currentUsed: number; notes: string; ignored?: boolean; activationAcknowledged?: boolean }) => void;
   onToggleIgnored: (id: string, data: { ignored: boolean }) => void;
 }
 
@@ -21,7 +20,6 @@ export function CardDetail ({
   allBenefits,
   onBack, 
   onUpdateBenefit,
-  onToggleActivation,
   onToggleIgnored
 }: CardDetailProps) {
   const [editingBenefit, setEditingBenefit] = React.useState<Benefit | null>(null);
@@ -40,7 +38,7 @@ export function CardDetail ({
     setIsModalOpen(true);
   };
 
-  const handleSave = (id: string, data: { currentUsed: number; notes: string }) => {
+  const handleSave = (id: string, data: { currentUsed: number; notes: string; ignored?: boolean; activationAcknowledged?: boolean }) => {
     onUpdateBenefit(id, data);
   };
 
@@ -66,7 +64,6 @@ export function CardDetail ({
             key={benefit.id}
             benefit={benefit}
             onEdit={handleEdit}
-            onToggleActivation={onToggleActivation}
           />
         ))}
       </div>

@@ -10,8 +10,7 @@ interface DashboardProps {
   allBenefits: Benefit[];
   stats: Stats | null;
   onEditBenefit: (benefit: Benefit) => void;
-  onUpdateBenefit: (id: string, data: { currentUsed: number; notes: string; ignored?: boolean }) => void;
-  onToggleActivation: (id: string) => void;
+  onUpdateBenefit: (id: string, data: { currentUsed: number; notes: string; ignored?: boolean; activationAcknowledged?: boolean }) => void;
   onToggleIgnored: (id: string, data: { ignored: boolean }) => void;
 }
 
@@ -21,7 +20,6 @@ export function Dashboard({
   allBenefits,
   stats, 
   onUpdateBenefit,
-  onToggleActivation,
   onToggleIgnored
 }: DashboardProps) {
   const [editingBenefit, setEditingBenefit] = useState<Benefit | null>(null);
@@ -32,7 +30,7 @@ export function Dashboard({
     setIsModalOpen(true);
   };
 
-  const handleSave = (id: string, data: { currentUsed: number; notes: string }) => {
+  const handleSave = (id: string, data: { currentUsed: number; notes: string; ignored?: boolean; activationAcknowledged?: boolean }) => {
     onUpdateBenefit(id, data);
   };
 
@@ -92,7 +90,6 @@ export function Dashboard({
                   key={benefit.id}
                   benefit={benefit}
                   onEdit={handleEdit}
-                  onToggleActivation={onToggleActivation}
                 />
               ))}
             </div>

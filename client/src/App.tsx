@@ -51,9 +51,15 @@ function App() {
     }
   }, [selectedCardId, loadAllBenefitsForCard]);
 
-  const handleUpdateBenefit = async (id: string, data: { currentUsed: number; notes: string; ignored?: boolean }) => {
+  const handleUpdateBenefit = async (id: string, data: { currentUsed: number; notes: string; ignored?: boolean; activationAcknowledged?: boolean }) => {
     try {
-      const updated = await api.updateBenefit(id, data);
+      const { activationAcknowledged, ...updateData } = data;
+      let updated = await api.updateBenefit(id, updateData);
+
+      if (activationAcknowledged !== undefined && activationAcknowledged !== updated.activationAcknowledged) {
+        updated = await api.toggleActivation(id);
+      }
+
       setAllBenefits(prev => prev.map(b => b.id === id ? updated : b));
       if (updated.ignored) {
         setBenefits(prev => prev.filter(b => b.id !== id));
@@ -70,16 +76,6 @@ function App() {
       setStats(statsData);
     } catch (err) {
       console.error('Failed to update benefit:', err);
-    }
-  };
-
-  const handleToggleActivation = async (id: string) => {
-    try {
-      const updated = await api.toggleActivation(id);
-      setBenefits(prev => prev.map(b => b.id === id ? updated : b));
-      setAllBenefits(prev => prev.map(b => b.id === id ? updated : b));
-    } catch (err) {
-      console.error('Failed to toggle activation:', err);
     }
   };
 
@@ -173,16 +169,16 @@ function App() {
 
       <main className="max-w-6xl mx-auto px-4 py-8">
         {selectedCard ? (
-          <CardDetail
-            card={selectedCard}
-            benefits={selectedCardBenefits}
-            allBenefits={selectedCardAllBenefits}
-            onBack={() => setSelectedCardId(null)}
-            onEditBenefit={() => {}}
-            onUpdateBenefit={handleUpdateBenefit}
-            onToggleActivation={handleToggleActivation}
-            onToggleIgnored={handleToggleIgnored}
-          />
+            <CardDetail
+              card={selectedCard}
+              benefits={selectedCardBenefits}
+              allBenefits={selectedCardAllBenefits}
+              onBack={() => setSelectedCardId(null)}
+              onEditBenefit={() => {}}
+              onUpdateBenefit={handleUpdateBenefit}
+              onToggleIgnored={handleToggleIgnored}
+            />
+
         ) : (
           <Dashboard
             benefits={benefits}
@@ -191,7 +187,6 @@ function App() {
             stats={stats}
             onEditBenefit={() => {}}
             onUpdateBenefit={handleUpdateBenefit}
-            onToggleActivation={handleToggleActivation}
             onToggleIgnored={handleToggleIgnored}
           />
         )}

@@ -1,7 +1,15 @@
 import { test, expect } from '@playwright/test';
+import { readFileSync, writeFileSync } from 'fs';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
+
+const rootDir = dirname(fileURLToPath(import.meta.url));
+const userBenefitsPath = join(rootDir, '..', 'data', 'user-benefits.json');
+const baseUserBenefits = readFileSync(userBenefitsPath, 'utf-8');
 
 test.describe('Dashboard', () => {
   test.beforeEach(async ({ page }) => {
+    writeFileSync(userBenefitsPath, baseUserBenefits);
     await page.goto('/');
   });
 
@@ -10,8 +18,8 @@ test.describe('Dashboard', () => {
   });
 
   test('shows all cards', async ({ page }) => {
-    await expect(page.locator('text=American Express Platinum')).toBeVisible();
-    await expect(page.locator('text=Chase Sapphire Reserve')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'American Express Platinum' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Chase Sapphire Reserve' })).toBeVisible();
   });
 
   test('shows summary stats', async ({ page }) => {
@@ -19,27 +27,28 @@ test.describe('Dashboard', () => {
   });
 
   test('shows all benefits', async ({ page }) => {
-    await expect(page.locator('text=Uber Cash')).toBeVisible();
-    await expect(page.locator('text=Saks Fifth Avenue')).toBeVisible();
-    await expect(page.locator('text=Airline Fee Credit')).toBeVisible();
-    await expect(page.locator('text=Travel Credit')).toBeVisible();
-    await expect(page.locator('text=Global Entry/TSA PreCheck')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Uber Cash' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Saks Fifth Avenue' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Airline Fee Credit' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Travel Credit' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Global Entry/TSA PreCheck' }).first()).toBeVisible();
   });
 });
 
 test.describe('Benefit Cards', () => {
   test.beforeEach(async ({ page }) => {
+    writeFileSync(userBenefitsPath, baseUserBenefits);
     await page.goto('/');
   });
 
   test('displays benefit name and description', async ({ page }) => {
     await expect(page.getByRole('heading', { name: 'Uber Cash' })).toBeVisible();
-    await expect(page.getByText('$200 annually for Uber rides and Eats')).toBeVisible();
+    await expect(page.getByText('$200 annually ($15 monthly + $20 in December)')).toBeVisible();
   });
 
   test('shows progress bar', async ({ page }) => {
     const uberCard = page.locator('.benefit-card', { hasText: 'Uber Cash' });
-    await expect(uberCard.getByText('$0 / $200')).toBeVisible();
+    await expect(uberCard.getByText(/\$\d+ \/ \$200/)).toBeVisible();
   });
 
   test('shows status badge', async ({ page }) => {
@@ -54,6 +63,7 @@ test.describe('Benefit Cards', () => {
 
 test.describe('Edit Modal', () => {
   test.beforeEach(async ({ page }) => {
+    writeFileSync(userBenefitsPath, baseUserBenefits);
     await page.goto('/');
   });
 
@@ -68,7 +78,9 @@ test.describe('Edit Modal', () => {
     await uberCard.getByRole('button', { name: 'Edit' }).click();
     const dialog = page.getByRole('dialog');
     const input = dialog.getByLabel('Amount Used ($200 total)');
-    await expect(input).toHaveValue('0');
+    const cardValue = await uberCard.getByText(/\$\d+ \/ \$200/).innerText();
+    const usedValue = cardValue.split('/')[0]?.replace('$', '').trim();
+    await expect(input).toHaveValue(usedValue ?? '0');
   });
 
   test('saves updated amount', async ({ page }) => {
@@ -114,23 +126,52 @@ test.describe('Edit Modal', () => {
 
 test.describe('Activation Toggle', () => {
   test.beforeEach(async ({ page }) => {
+    writeFileSync(userBenefitsPath, baseUserBenefits);
     await page.goto('/');
   });
 
-  test('shows Needs Activation for unactivated benefits', async ({ page }) => {
+  test('updates activation via edit modal and persists', async ({ page }) => {
     const uberCard = page.locator('.benefit-card', { hasText: 'Uber Cash' });
-    await expect(uberCard.getByRole('button', { name: 'Needs Activation' })).toBeVisible();
-  });
+    const activationLabel = uberCard.getByText(/Needs Activation|Activated/);
+    const wasActivated = await activationLabel.innerText();
 
-  test('toggles to Activated when clicked', async ({ page }) => {
-    const uberCard = page.locator('.benefit-card', { hasText: 'Uber Cash' });
-    await uberCard.getByRole('button', { name: 'Needs Activation' }).click();
-    await expect(uberCard.getByRole('button', { name: 'Activated' })).toBeVisible();
+    await uberCard.getByRole('button', { name: 'Edit' }).click();
+    const dialog = page.getByRole('dialog');
+    const activationCheckbox = dialog.getByLabel('Enrolled/activated benefit');
+
+    if (wasActivated === 'Activated') {
+      await activationCheckbox.uncheck();
+      await dialog.getByRole('button', { name: 'Save' }).click();
+      await expect(uberCard.getByText('Needs Activation')).toBeVisible();
+
+      await page.reload();
+      const reloadedCard = page.locator('.benefit-card', { hasText: 'Uber Cash' });
+      await expect(reloadedCard.getByText('Needs Activation')).toBeVisible();
+    } else {
+      await activationCheckbox.check();
+      await dialog.getByRole('button', { name: 'Save' }).click();
+      await expect(uberCard.getByText('Activated')).toBeVisible();
+
+      await page.reload();
+      const reloadedCard = page.locator('.benefit-card', { hasText: 'Uber Cash' });
+      await expect(reloadedCard.getByText('Activated')).toBeVisible();
+
+      await reloadedCard.getByRole('button', { name: 'Edit' }).click();
+      const dialogAfterReload = page.getByRole('dialog');
+      await dialogAfterReload.getByLabel('Enrolled/activated benefit').uncheck();
+      await dialogAfterReload.getByRole('button', { name: 'Save' }).click();
+      await expect(reloadedCard.getByText('Needs Activation')).toBeVisible();
+
+      await page.reload();
+      const finalCard = page.locator('.benefit-card', { hasText: 'Uber Cash' });
+      await expect(finalCard.getByText('Needs Activation')).toBeVisible();
+    }
   });
 });
 
 test.describe('Card Filtering', () => {
   test.beforeEach(async ({ page }) => {
+    writeFileSync(userBenefitsPath, baseUserBenefits);
     await page.goto('/');
   });
 

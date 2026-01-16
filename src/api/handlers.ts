@@ -54,7 +54,12 @@ export async function updateBenefitHandler(c: Context) {
     }
     
     if (updates.currentUsed !== undefined) {
-      const updated = updateBenefitUsage(id, updates.currentUsed, updates.notes, updates.ignored);
+      const updated = updateBenefitUsage(
+        id,
+        updates.currentUsed,
+        updates.notes,
+        updates.ignored
+      );
       return jsonResponse(c, { success: true, data: updated });
     }
 

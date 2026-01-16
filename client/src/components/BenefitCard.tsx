@@ -24,10 +24,9 @@ function StatusBadge({ status }: StatusBadgeProps) {
 interface BenefitCardProps {
   benefit: Benefit;
   onEdit: (benefit: Benefit) => void;
-  onToggleActivation: (id: string) => void;
 }
 
-export function BenefitCard({ benefit, onEdit, onToggleActivation }: BenefitCardProps) {
+export function BenefitCard({ benefit, onEdit }: BenefitCardProps) {
   const daysUntilExpiry = getDaysUntilExpiry(benefit.endDate);
   const progressPercent = Math.min((benefit.currentUsed / benefit.creditAmount) * 100, 100);
   const overallTimeProgress = getTimeProgress(benefit.startDate, benefit.endDate);
@@ -184,16 +183,15 @@ export function BenefitCard({ benefit, onEdit, onToggleActivation }: BenefitCard
         </div>
         <div className="flex gap-2">
           {benefit.activationRequired && (
-            <button
-              onClick={() => onToggleActivation(benefit.id)}
-              className={`text-xs px-2 py-1 rounded ${
+            <span
+              className={`inline-flex items-center text-[11px] px-2 py-0.5 rounded border leading-tight ${
                 benefit.activationAcknowledged
-                  ? 'bg-emerald-500/20 text-emerald-400'
-                  : 'bg-amber-400/20 text-amber-400'
+                  ? 'border-emerald-400/50 text-emerald-400 bg-emerald-500/10'
+                  : 'border-amber-400/60 text-amber-400 bg-amber-400/10'
               }`}
             >
               {benefit.activationAcknowledged ? 'Activated' : 'Needs Activation'}
-            </button>
+            </span>
           )}
           <button
             onClick={() => onEdit(benefit)}

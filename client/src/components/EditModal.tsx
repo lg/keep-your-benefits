@@ -5,19 +5,21 @@ interface EditModalProps {
   benefit: Benefit | null;
   isOpen: boolean;
   onClose: () => void;
-  onSave: (id: string, data: { currentUsed: number; notes: string; ignored?: boolean }) => void;
+  onSave: (id: string, data: { currentUsed: number; notes: string; ignored?: boolean; activationAcknowledged?: boolean }) => void;
 }
 
 export function EditModal({ benefit, isOpen, onClose, onSave }: EditModalProps) {
   const [used, setUsed] = React.useState('');
   const [notes, setNotes] = React.useState('');
   const [ignored, setIgnored] = React.useState(false);
+  const [activationAcknowledged, setActivationAcknowledged] = React.useState(false);
 
   React.useEffect(() => {
     if (benefit) {
       setUsed(benefit.currentUsed.toString());
       setNotes(benefit.notes);
       setIgnored(benefit.ignored);
+      setActivationAcknowledged(benefit.activationAcknowledged);
     }
   }, [benefit]);
 
@@ -41,7 +43,12 @@ export function EditModal({ benefit, isOpen, onClose, onSave }: EditModalProps) 
 
   const handleSave = () => {
     const usedValue = parseFloat(used) || 0;
-    onSave(benefit.id, { currentUsed: usedValue, notes, ignored });
+    onSave(benefit.id, {
+      currentUsed: usedValue,
+      notes,
+      ignored,
+      activationAcknowledged: benefit.activationRequired ? activationAcknowledged : undefined
+    });
     onClose();
   };
 
@@ -100,6 +107,20 @@ export function EditModal({ benefit, isOpen, onClose, onSave }: EditModalProps) 
             placeholder="How did you use this benefit?"
           />
         </div>
+
+        {benefit.activationRequired && (
+          <div className="mb-4">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={activationAcknowledged}
+                onChange={() => setActivationAcknowledged(!activationAcknowledged)}
+                className="rounded border-slate-600 bg-slate-700 text-blue-500 focus:ring-blue-500"
+              />
+              <span className="text-sm">Enrolled/activated benefit</span>
+            </label>
+          </div>
+        )}
 
         <div className="mb-4">
           <label className="flex items-center gap-2 cursor-pointer">

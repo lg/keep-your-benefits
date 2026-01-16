@@ -20,6 +20,63 @@
       "notes": "",
       "status": "pending",
       "ignored": false
+    },
+    "amex-uber-cash": {
+      "currentUsed": 0,
+      "activationAcknowledged": false,
+      "notes": "",
+      "status": "pending",
+      "ignored": false,
+      "periods": {
+        "amex-uber-cash-2026-01": {
+          "usedAmount": 0,
+          "status": "pending"
+        },
+        "amex-uber-cash-2026-02": {
+          "usedAmount": 0,
+          "status": "pending"
+        },
+        "amex-uber-cash-2026-03": {
+          "usedAmount": 0,
+          "status": "pending"
+        },
+        "amex-uber-cash-2026-04": {
+          "usedAmount": 0,
+          "status": "pending"
+        },
+        "amex-uber-cash-2026-05": {
+          "usedAmount": 0,
+          "status": "pending"
+        },
+        "amex-uber-cash-2026-06": {
+          "usedAmount": 0,
+          "status": "pending"
+        },
+        "amex-uber-cash-2026-07": {
+          "usedAmount": 0,
+          "status": "pending"
+        },
+        "amex-uber-cash-2026-08": {
+          "usedAmount": 0,
+          "status": "pending"
+        },
+        "amex-uber-cash-2026-09": {
+          "usedAmount": 0,
+          "status": "pending"
+        },
+        "amex-uber-cash-2026-10": {
+          "usedAmount": 0,
+          "status": "pending"
+        },
+        "amex-uber-cash-2026-11": {
+          "usedAmount": 0,
+          "status": "pending"
+        },
+        "amex-uber-cash-2026-12": {
+          "usedAmount": 0,
+          "status": "pending"
+        }
+      }
     }
   }
 }
