@@ -1,8 +1,9 @@
-import { useMemo } from 'react';
-import type { Benefit, Stats, CreditCard } from '../types';
+import { useMemo, useState, useCallback } from 'react';
+import type { Benefit, Stats, CreditCard, BenefitDefinition } from '../types';
 import { BenefitCard } from '../components/BenefitCard';
 import { CardHeader } from '../components/CardHeader';
 import { EditModal } from '../components/EditModal';
+import { ImportModal } from '../components/ImportModal';
 import { useEditModal } from '../hooks/useEditModal';
 import { calculateStats } from '@shared/utils';
 
@@ -10,20 +11,47 @@ interface DashboardProps {
   benefits: Benefit[];
   cards: CreditCard[];
   allBenefits: Benefit[];
+  definitions: BenefitDefinition[];
   stats: Stats | null;
   onUpdateBenefit: (id: string, data: { currentUsed?: number; ignored?: boolean; activationAcknowledged?: boolean; periods?: Record<string, number> }) => void;
   onToggleIgnored: (id: string, data: { ignored: boolean }) => void;
+  onImport: (cardId: string, aggregated: Map<string, { currentUsed: number; periods?: Record<string, number> }>) => void;
 }
 
 export function Dashboard({ 
   benefits, 
   cards, 
   allBenefits,
+  definitions,
   stats, 
   onUpdateBenefit,
-  onToggleIgnored
+  onToggleIgnored,
+  onImport
 }: DashboardProps) {
   const { editingBenefit, isModalOpen, initialPeriodId, handleEdit, handleEditPeriod, handleClose } = useEditModal();
+  
+  // Import modal state
+  const [importCardId, setImportCardId] = useState<string | null>(null);
+  
+  const importCard = importCardId ? cards.find(c => c.id === importCardId) : null;
+  const importCardDefinitions = importCardId 
+    ? definitions.filter(d => d.cardId === importCardId) 
+    : [];
+
+  const handleImportClick = useCallback((cardId: string) => {
+    setImportCardId(cardId);
+  }, []);
+
+  const handleImportClose = useCallback(() => {
+    setImportCardId(null);
+  }, []);
+
+  const handleImportConfirm = useCallback((aggregated: Map<string, { currentUsed: number; periods?: Record<string, number> }>) => {
+    if (importCardId) {
+      onImport(importCardId, aggregated);
+    }
+    setImportCardId(null);
+  }, [importCardId, onImport]);
 
   const benefitsByCard = useMemo(() => 
     cards.map(card => ({
@@ -69,6 +97,7 @@ export function Dashboard({
               stats={calculateStats(cardBenefits)}
               allBenefits={cardAllBenefits}
               onUpdateBenefit={onToggleIgnored}
+              onImportClick={() => handleImportClick(card.id)}
             />
             <div className="grid gap-4 md:grid-cols-2">
               {cardBenefits.map(benefit => (
@@ -90,6 +119,15 @@ export function Dashboard({
         onClose={handleClose}
         onSave={onUpdateBenefit}
         initialPeriodId={initialPeriodId}
+      />
+
+      <ImportModal
+        isOpen={importCardId !== null}
+        cardId={importCardId ?? ''}
+        cardName={importCard?.name ?? ''}
+        benefits={importCardDefinitions}
+        onClose={handleImportClose}
+        onImport={handleImportConfirm}
       />
     </div>
   );

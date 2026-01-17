@@ -3,3 +3,7 @@ dist/
 *.log
 .DS_Store
 test-results/
+
+# Sample CSV files with personal data
+amexsample.csv
+chasesample.csv

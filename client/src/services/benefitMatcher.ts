@@ -1,0 +1,217 @@
+// Benefit matching logic - maps credit transactions to benefit definitions
+
+import type { BenefitDefinition } from '@shared/types';
+import type {
+  ParsedTransaction,
+  MatchedCredit,
+  ImportResult,
+  CardType,
+} from '../types/import';
+
+// Pattern definitions for matching credits to benefits
+interface BenefitPattern {
+  pattern: RegExp;
+  benefitId: string;
+}
+
+// Amex Platinum credit patterns
+const AMEX_PLATINUM_PATTERNS: BenefitPattern[] = [
+  // Order matters - more specific patterns first
+  { pattern: /uber.*one/i, benefitId: 'amex-uber-one' },
+  { pattern: /uber/i, benefitId: 'amex-uber-cash' },
+  { pattern: /lululemon/i, benefitId: 'amex-lululemon' },
+  { pattern: /saks/i, benefitId: 'amex-saks' },
+  { pattern: /clear\s*plus|clear.*credit/i, benefitId: 'amex-clear-plus' },
+  { pattern: /airline/i, benefitId: 'amex-airline-fee' },
+  { pattern: /resy/i, benefitId: 'amex-resy-credit' },
+  {
+    pattern: /digital.*entertainment|entertainment.*credit/i,
+    benefitId: 'amex-digital-entertainment',
+  },
+  { pattern: /walmart/i, benefitId: 'amex-walmart-plus' },
+  { pattern: /hotel/i, benefitId: 'amex-hotel-credit' },
+  { pattern: /oura/i, benefitId: 'amex-oura' },
+  { pattern: /equinox/i, benefitId: 'amex-equinox' },
+  {
+    pattern: /global.*entry|tsa.*precheck|nexus/i,
+    benefitId: 'amex-global-entry',
+  },
+];
+
+// Chase Sapphire Reserve credit patterns (for future use)
+const CHASE_SAPPHIRE_PATTERNS: BenefitPattern[] = [
+  { pattern: /travel.*credit/i, benefitId: 'csr-travel-credit' },
+  { pattern: /doordash/i, benefitId: 'csr-doordash' },
+  { pattern: /lyft/i, benefitId: 'csr-lyft' },
+  { pattern: /peloton/i, benefitId: 'csr-peloton' },
+  { pattern: /stubhub|viagogo/i, benefitId: 'csr-stubhub' },
+  { pattern: /exclusive.*table|dining.*credit/i, benefitId: 'csr-dining-exclusive-tables' },
+  { pattern: /edit.*hotel|hotel.*edit/i, benefitId: 'csr-edit-hotel' },
+  { pattern: /global.*entry|tsa.*precheck|nexus/i, benefitId: 'csr-global-entry' },
+];
+
+// Map card types to their patterns
+const CARD_PATTERNS: Record<CardType, BenefitPattern[]> = {
+  'amex-platinum': AMEX_PLATINUM_PATTERNS,
+  'chase-sapphire-reserve': CHASE_SAPPHIRE_PATTERNS,
+};
+
+/**
+ * Find which benefit a credit matches based on its description
+ */
+function matchBenefitId(
+  description: string,
+  cardId: CardType
+): { benefitId: string; confidence: 'high' | 'low' } | null {
+  const patterns = CARD_PATTERNS[cardId];
+  if (!patterns) {
+    return null;
+  }
+
+  for (const { pattern, benefitId } of patterns) {
+    if (pattern.test(description)) {
+      return { benefitId, confidence: 'high' };
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Find which period a transaction date falls into
+ */
+function findPeriodId(
+  transactionDate: Date,
+  benefit: BenefitDefinition
+): string | null {
+  if (!benefit.periods || benefit.periods.length === 0) {
+    return null;
+  }
+
+  for (const period of benefit.periods) {
+    const start = new Date(period.startDate);
+    const end = new Date(period.endDate);
+
+    if (transactionDate >= start && transactionDate <= end) {
+      return period.id;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Match credits to benefits and aggregate results
+ */
+export function matchCredits(
+  credits: ParsedTransaction[],
+  cardId: CardType,
+  benefits: BenefitDefinition[]
+): ImportResult {
+  const matchedCredits: MatchedCredit[] = [];
+  const unmatchedCredits: ParsedTransaction[] = [];
+
+  // Create a lookup map for benefits
+  const benefitMap = new Map<string, BenefitDefinition>();
+  for (const benefit of benefits) {
+    benefitMap.set(benefit.id, benefit);
+  }
+
+  for (const credit of credits) {
+    const match = matchBenefitId(credit.description, cardId);
+
+    if (!match) {
+      unmatchedCredits.push(credit);
+      continue;
+    }
+
+    const benefit = benefitMap.get(match.benefitId);
+    const periodId = benefit ? findPeriodId(credit.date, benefit) : null;
+
+    matchedCredits.push({
+      transaction: credit,
+      benefitId: match.benefitId,
+      benefitName: benefit?.name ?? null,
+      periodId,
+      creditAmount: Math.abs(credit.amount),
+      confidence: match.confidence,
+    });
+  }
+
+  return {
+    matchedCredits,
+    unmatchedCredits,
+    totalMatched: matchedCredits.length,
+    totalUnmatched: unmatchedCredits.length,
+  };
+}
+
+/**
+ * Aggregate matched credits into usage amounts per benefit and period
+ * Returns a map of benefitId -> { currentUsed, periods? }
+ */
+export function aggregateCredits(
+  matchedCredits: MatchedCredit[],
+  benefits: BenefitDefinition[]
+): Map<string, { currentUsed: number; periods?: Record<string, number> }> {
+  const result = new Map<
+    string,
+    { currentUsed: number; periods?: Record<string, number> }
+  >();
+
+  // Create benefit lookup for max amounts
+  const benefitMap = new Map<string, BenefitDefinition>();
+  for (const benefit of benefits) {
+    benefitMap.set(benefit.id, benefit);
+  }
+
+  for (const credit of matchedCredits) {
+    if (!credit.benefitId) continue;
+
+    const benefit = benefitMap.get(credit.benefitId);
+    const existing = result.get(credit.benefitId) ?? {
+      currentUsed: 0,
+      periods: undefined,
+    };
+
+    if (credit.periodId && benefit?.periods) {
+      // Period-based benefit
+      existing.periods = existing.periods ?? {};
+      const currentPeriodAmount = existing.periods[credit.periodId] ?? 0;
+      existing.periods[credit.periodId] =
+        currentPeriodAmount + credit.creditAmount;
+
+      // Also update the total currentUsed
+      existing.currentUsed += credit.creditAmount;
+    } else {
+      // Non-period benefit or no period matched
+      existing.currentUsed += credit.creditAmount;
+    }
+
+    result.set(credit.benefitId, existing);
+  }
+
+  // Cap amounts at benefit maximums
+  for (const [benefitId, usage] of result) {
+    const benefit = benefitMap.get(benefitId);
+    if (!benefit) continue;
+
+    // Cap total
+    usage.currentUsed = Math.min(usage.currentUsed, benefit.creditAmount);
+
+    // Cap per-period amounts
+    if (usage.periods && benefit.periods) {
+      const periodCount = benefit.periods.length;
+      const maxPerPeriod = benefit.creditAmount / periodCount;
+
+      for (const periodId of Object.keys(usage.periods)) {
+        usage.periods[periodId] = Math.min(
+          usage.periods[periodId],
+          maxPerPeriod
+        );
+      }
+    }
+  }
+
+  return result;
+}

@@ -5,6 +5,7 @@ import { CardDetail } from './pages/CardDetail';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import * as benefitsService from './services/benefits';
 import { api } from './api/client';
+import { importBenefitUsage } from './storage/userBenefits';
 
 function App() {
   const [cards, setCards] = useState<CreditCard[]>([]);
@@ -147,6 +148,31 @@ function App() {
     }
   }, [definitions]);
 
+  const handleImport = useCallback(async (
+    cardId: string,
+    aggregated: Map<string, { currentUsed: number; periods?: Record<string, number> }>
+  ) => {
+    try {
+      // Get definitions for this card
+      const cardDefinitions = definitions.filter(d => d.cardId === cardId);
+      
+      // Import to localStorage
+      importBenefitUsage(aggregated, cardDefinitions);
+      
+      // Refresh benefits from storage
+      const allBenefitsData = await benefitsService.getBenefits(undefined, true);
+      const benefitsData = allBenefitsData.filter(b => !b.ignored);
+      const statsData = await benefitsService.getStats();
+      
+      setAllBenefits(allBenefitsData);
+      setBenefits(benefitsData);
+      setStats(statsData);
+      setUpdateError(null);
+    } catch (err) {
+      setUpdateError(`Failed to import: ${(err as Error).message}`);
+    }
+  }, [definitions]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center">
@@ -238,9 +264,11 @@ function App() {
                 card={selectedCard}
                 benefits={selectedCardBenefits}
                 allBenefits={selectedCardAllBenefits}
+                definitions={definitions.filter(d => d.cardId === selectedCardId)}
                 onBack={() => setSelectedCardId(null)}
                 onUpdateBenefit={handleUpdateBenefit}
                 onToggleIgnored={handleToggleIgnored}
+                onImport={handleImport}
               />
 
           ) : (
@@ -248,9 +276,11 @@ function App() {
               benefits={benefits}
               cards={cards}
               allBenefits={allBenefits}
+              definitions={definitions}
               stats={stats}
               onUpdateBenefit={handleUpdateBenefit}
               onToggleIgnored={handleToggleIgnored}
+              onImport={handleImport}
             />
           )}
         </ErrorBoundary>

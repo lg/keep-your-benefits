@@ -6,9 +6,10 @@ interface CardHeaderProps {
   stats?: CardStats;
   allBenefits: Benefit[];
   onUpdateBenefit: (id: string, data: { ignored: boolean }) => void;
+  onImportClick?: () => void;
 }
 
-export function CardHeader({ card, stats, allBenefits, onUpdateBenefit }: CardHeaderProps) {
+export function CardHeader({ card, stats, allBenefits, onUpdateBenefit, onImportClick }: CardHeaderProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [loading, setLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -41,7 +42,20 @@ export function CardHeader({ card, stats, allBenefits, onUpdateBenefit }: CardHe
           <h2 className="text-2xl font-bold">{card.name}</h2>
           <p className="text-slate-400">${card.annualFee}/year annual fee</p>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
+          {onImportClick && (
+            <button
+              onClick={onImportClick}
+              className="p-2 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-white transition-colors"
+              title="Import statement"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="17 8 12 3 7 8"/>
+                <line x1="12" y1="3" x2="12" y2="15"/>
+              </svg>
+            </button>
+          )}
           {ignoredCount > 0 && (
             <span className="text-xs text-amber-400">
               {ignoredCount} ignored

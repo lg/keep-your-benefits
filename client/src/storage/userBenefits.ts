@@ -139,3 +139,103 @@ export function clearAllUserData(): void {
   cachedData = null;
   localStorage.removeItem(STORAGE_KEY);
 }
+
+/**
+ * Import benefit usage from CSV data
+ * Replaces existing usage data for the specified benefits
+ */
+export function importBenefitUsage(
+  imports: Map<string, { currentUsed: number; periods?: Record<string, number> }>,
+  benefitDefinitions: BenefitDefinition[]
+): void {
+  const data = getUserBenefitsData();
+
+  // Create lookup for benefit definitions
+  const benefitDefMap = new Map<string, BenefitDefinition>();
+  for (const def of benefitDefinitions) {
+    benefitDefMap.set(def.id, def);
+  }
+
+  for (const [benefitId, usage] of imports) {
+    const benefitDef = benefitDefMap.get(benefitId);
+    if (!benefitDef) continue;
+
+    // Get existing state or create default
+    const existing = data.benefits[benefitId] ?? getDefaultUserState(benefitDef);
+
+    // Replace currentUsed (not add)
+    existing.currentUsed = usage.currentUsed;
+
+    // Handle period-based updates
+    if (usage.periods && benefitDef.periods) {
+      existing.periods = existing.periods ?? {};
+
+      for (const [periodId, amount] of Object.entries(usage.periods)) {
+        // Calculate status based on period's max amount
+        const periodCount = benefitDef.periods.length;
+        const maxPerPeriod = benefitDef.creditAmount / periodCount;
+        const periodStatus: BenefitPeriodUserState['status'] =
+          amount >= maxPerPeriod ? 'completed' : 'pending';
+
+        existing.periods[periodId] = {
+          usedAmount: amount,
+          status: periodStatus,
+        };
+      }
+    }
+
+    // Recalculate overall status
+    existing.status = calculateBenefitStatus(existing, benefitDef);
+
+    data.benefits[benefitId] = existing;
+  }
+
+  saveUserBenefitsData(data);
+}
+
+/**
+ * Calculate overall benefit status based on usage
+ */
+function calculateBenefitStatus(
+  state: BenefitUserState,
+  definition: BenefitDefinition
+): BenefitUserState['status'] {
+  // If benefit has periods, check if all periods are completed
+  if (state.periods && definition.periods && definition.periods.length > 0) {
+    const allCompleted = definition.periods.every((period) => {
+      const periodState = state.periods?.[period.id];
+      return periodState?.status === 'completed';
+    });
+
+    if (allCompleted) {
+      return 'completed';
+    }
+
+    // Check if any periods are missed (past end date and not completed)
+    const now = new Date();
+    const anyMissed = definition.periods.some((period) => {
+      const endDate = new Date(period.endDate);
+      const periodState = state.periods?.[period.id];
+      return endDate < now && periodState?.status !== 'completed';
+    });
+
+    if (anyMissed) {
+      return 'missed';
+    }
+
+    return 'pending';
+  }
+
+  // Non-period benefit: check total usage
+  if (state.currentUsed >= definition.creditAmount) {
+    return 'completed';
+  }
+
+  // Check if benefit end date has passed
+  const endDate = new Date(definition.endDate);
+  if (endDate < new Date() && state.currentUsed < definition.creditAmount) {
+    return 'missed';
+  }
+
+  return 'pending';
+}
