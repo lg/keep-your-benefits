@@ -10,7 +10,7 @@ interface CardDetailProps {
   benefits: Benefit[];
   allBenefits: Benefit[];
   onBack: () => void;
-  onUpdateBenefit: (id: string, data: { notes: string; ignored?: boolean; activationAcknowledged?: boolean; periods?: Record<string, number> }) => void;
+  onUpdateBenefit: (id: string, data: { currentUsed?: number; ignored?: boolean; activationAcknowledged?: boolean; periods?: Record<string, number> }) => void;
   onToggleIgnored: (id: string, data: { ignored: boolean }) => void;
 }
 

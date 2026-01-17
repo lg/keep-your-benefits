@@ -136,31 +136,9 @@ describe('updateBenefitUsage', () => {
   it('calculates completed status when fully used', () => {
     const updated = updateBenefitUsage('amex-uber', 200)
     expect(updated.status).toBe('completed')
-    
+
     // Reset
     updateBenefitUsage('amex-uber', 0)
-  })
-  
-  it('updates notes when provided', () => {
-    const updated = updateBenefitUsage('amex-uber', 50, 'Used for airport ride')
-    
-    expect(updated.notes).toBe('Used for airport ride')
-    
-    // Reset
-    updateBenefitUsage('amex-uber', 0, '')
-  })
-  
-  it('preserves existing notes when not provided', () => {
-    // First set a note
-    updateBenefitUsage('amex-uber', 0, 'Existing note')
-    
-    // Update usage without changing notes
-    const updated = updateBenefitUsage('amex-uber', 25)
-    
-    expect(updated.notes).toBe('Existing note')
-    
-    // Reset
-    updateBenefitUsage('amex-uber', 0, '')
   })
   
   it('throws error for non-existent benefit', () => {

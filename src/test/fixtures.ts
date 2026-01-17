@@ -128,7 +128,6 @@ export const defaultUserData: UserBenefitsData = {
     'chase-travel': {
       currentUsed: 0,
       activationAcknowledged: true,
-      notes: '',
       status: 'pending',
       ignored: true
     }

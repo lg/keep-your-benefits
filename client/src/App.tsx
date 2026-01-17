@@ -54,7 +54,7 @@ function App() {
 
   const handleUpdateBenefit = async (
     id: string,
-    data: { notes: string; ignored?: boolean; activationAcknowledged?: boolean; periods?: Record<string, number> }
+    data: { currentUsed?: number; ignored?: boolean; activationAcknowledged?: boolean; periods?: Record<string, number> }
   ) => {
     try {
       const { activationAcknowledged, ...updateData } = data;

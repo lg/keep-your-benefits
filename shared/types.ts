@@ -41,7 +41,6 @@ export interface BenefitDefinition {
 export interface BenefitUserState {
   currentUsed: number;
   activationAcknowledged: boolean;
-  notes: string;
   status: BenefitStatus;
   ignored: boolean;
   periods?: Record<string, BenefitPeriodUserState>;
@@ -64,7 +63,6 @@ export interface UserBenefitsData {
 
 export interface UpdateBenefitRequest {
   currentUsed?: number;
-  notes?: string;
   status?: BenefitStatus;
   ignored?: boolean;
   periods?: Record<string, number>;

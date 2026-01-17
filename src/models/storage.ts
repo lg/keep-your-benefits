@@ -63,7 +63,6 @@ function getDefaultUserState(benefit: BenefitDefinition): BenefitUserState {
   return {
     currentUsed: 0,
     activationAcknowledged: !benefit.activationRequired,
-    notes: '',
     status: 'pending',
     ignored: false,
     periods: periodStates

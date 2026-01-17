@@ -85,7 +85,6 @@ export async function updateBenefitHandler(c: Context) {
       const updated = updateBenefit(id, {
         periods: periodStates,
         currentUsed: totalUsed,
-        notes: updates.notes ?? benefit.notes,
         ignored: updates.ignored ?? benefit.ignored,
         status: calculateBenefitStatus({ ...benefit, currentUsed: totalUsed })
       });
@@ -97,17 +96,12 @@ export async function updateBenefitHandler(c: Context) {
       const updated = updateBenefitUsage(
         id,
         updates.currentUsed,
-        updates.notes,
         updates.ignored
       );
       return jsonResponse(c, { success: true, data: updated });
     }
 
     const filteredUpdates: Partial<BenefitUserState> = {};
-
-    if (updates.notes !== undefined) {
-      filteredUpdates.notes = updates.notes;
-    }
 
     if (updates.status !== undefined) {
       filteredUpdates.status = updates.status;

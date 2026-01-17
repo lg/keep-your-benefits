@@ -3,7 +3,8 @@ import { mkdtempSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import app from '../index'
-import { staticData, defaultUserData, CardResponse, BenefitResponse, StatsResponse, ApiResponse } from '../test/fixtures'
+import { staticData, defaultUserData, ApiResponse } from '../test/fixtures'
+import type { CreditCard, Benefit, Stats } from '../models/types'
 
 let tempDir = ''
 
@@ -42,14 +43,14 @@ describe('GET /api/cards', () => {
     const res = await request('/api/cards')
     expect(res.status).toBe(200)
     
-    const data: ApiResponse<CardResponse[]> = await res.json()
+    const data: ApiResponse<CreditCard[]> = await res.json()
     expect(data.success).toBe(true)
     expect(data.data).toHaveLength(2)
   })
   
   it('returns cards with correct properties', async () => {
     const res = await request('/api/cards')
-    const data: ApiResponse<CardResponse[]> = await res.json()
+    const data: ApiResponse<CreditCard[]> = await res.json()
     
     const card = data.data![0]
     expect(card).toHaveProperty('id')
@@ -61,7 +62,7 @@ describe('GET /api/cards', () => {
   
   it('includes Amex and Chase cards', async () => {
     const res = await request('/api/cards')
-    const data: ApiResponse<CardResponse[]> = await res.json()
+    const data: ApiResponse<CreditCard[]> = await res.json()
     const names = data.data!.map((c) => c.name)
     
     expect(names).toContain('American Express Platinum')
@@ -74,14 +75,14 @@ describe('GET /api/benefits', () => {
     const res = await request('/api/benefits')
     expect(res.status).toBe(200)
     
-    const data: ApiResponse<BenefitResponse[]> = await res.json()
+    const data: ApiResponse<Benefit[]> = await res.json()
     expect(data.success).toBe(true)
     expect(data.data).toHaveLength(4)
   })
   
   it('filters benefits by cardId', async () => {
     const res = await request('/api/benefits?cardId=amex-platinum')
-    const data: ApiResponse<BenefitResponse[]> = await res.json()
+    const data: ApiResponse<Benefit[]> = await res.json()
     
     expect(res.status).toBe(200)
     expect(data.success).toBe(true)
@@ -93,7 +94,7 @@ describe('GET /api/benefits', () => {
   
   it('filters Chase benefits correctly', async () => {
     const res = await request('/api/benefits?cardId=chase-sapphire-reserve')
-    const data: ApiResponse<BenefitResponse[]> = await res.json()
+    const data: ApiResponse<Benefit[]> = await res.json()
     
     expect(res.status).toBe(200)
     expect(data.data).toHaveLength(1)
@@ -104,7 +105,7 @@ describe('GET /api/benefits', () => {
   
   it('returns empty array for unknown cardId', async () => {
     const res = await request('/api/benefits?cardId=unknown')
-    const data: ApiResponse<BenefitResponse[]> = await res.json()
+    const data: ApiResponse<Benefit[]> = await res.json()
     
     expect(res.status).toBe(200)
     expect(data.data).toHaveLength(0)
@@ -119,7 +120,7 @@ describe('GET /api/benefits', () => {
     })
     
     const res = await request('/api/benefits')
-    const data: ApiResponse<BenefitResponse[]> = await res.json()
+    const data: ApiResponse<Benefit[]> = await res.json()
     
     expect(res.status).toBe(200)
     expect(data.success).toBe(true)
@@ -143,7 +144,7 @@ describe('GET /api/benefits', () => {
     })
     
     const res = await request('/api/benefits?includeIgnored=true')
-    const data: ApiResponse<BenefitResponse[]> = await res.json()
+    const data: ApiResponse<Benefit[]> = await res.json()
     
     expect(res.status).toBe(200)
     expect(data.success).toBe(true)
@@ -163,7 +164,7 @@ describe('GET /api/benefits', () => {
 describe('GET /api/benefits/:id', () => {
   it('returns single benefit', async () => {
     const res = await request('/api/benefits/amex-uber')
-    const data: ApiResponse<BenefitResponse> = await res.json()
+    const data: ApiResponse<Benefit> = await res.json()
     
     expect(res.status).toBe(200)
     expect(data.success).toBe(true)
@@ -173,7 +174,7 @@ describe('GET /api/benefits/:id', () => {
   
   it('returns 404 for non-existent benefit', async () => {
     const res = await request('/api/benefits/non-existent')
-    const data: ApiResponse<BenefitResponse> = await res.json()
+    const data: ApiResponse<Benefit> = await res.json()
     
     expect(res.status).toBe(404)
     expect(data.success).toBe(false)
@@ -182,7 +183,7 @@ describe('GET /api/benefits/:id', () => {
   
   it('returns benefit with all properties', async () => {
     const res = await request('/api/benefits/amex-uber')
-    const data: ApiResponse<BenefitResponse> = await res.json()
+    const data: ApiResponse<Benefit> = await res.json()
     const benefit = data.data!
     
     expect(benefit).toHaveProperty('id')
@@ -205,7 +206,7 @@ describe('PATCH /api/benefits/:id', () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ currentUsed: 100 })
     })
-    const data: ApiResponse<BenefitResponse> = await res.json()
+    const data: ApiResponse<Benefit> = await res.json()
     
     expect(res.status).toBe(200)
     expect(data.success).toBe(true)
@@ -218,33 +219,14 @@ describe('PATCH /api/benefits/:id', () => {
       body: JSON.stringify({ currentUsed: 0 })
     })
   })
-  
-  it('updates notes field', async () => {
-    const res = await request('/api/benefits/amex-uber', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ notes: 'Test note' })
-    })
-    const data: ApiResponse<BenefitResponse> = await res.json()
-    
-    expect(res.status).toBe(200)
-    expect(data.data!.notes).toBe('Test note')
-    
-    // Reset
-    await request('/api/benefits/amex-uber', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ notes: '' })
-    })
-  })
-  
+
   it('returns 404 for non-existent benefit', async () => {
     const res = await request('/api/benefits/non-existent', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ currentUsed: 100 })
     })
-    const data: ApiResponse<BenefitResponse> = await res.json()
+    const data: ApiResponse<Benefit> = await res.json()
     
     expect(res.status).toBe(404)
     expect(data.success).toBe(false)
@@ -256,11 +238,11 @@ describe('PATCH /api/benefits/:id', () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ currentUsed: 200 })
     })
-    const data: ApiResponse<BenefitResponse> = await res.json()
-    
+    const data: ApiResponse<Benefit> = await res.json()
+
     expect(res.status).toBe(200)
     expect(data.data!.status).toBe('completed')
-    
+
     // Reset
     await request('/api/benefits/amex-uber', {
       method: 'PATCH',
@@ -275,7 +257,7 @@ describe('PATCH /api/benefits/:id', () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ignored: true })
     })
-    const data: ApiResponse<BenefitResponse> = await res.json()
+    const data: ApiResponse<Benefit> = await res.json()
     
     expect(res.status).toBe(200)
     expect(data.success).toBe(true)
@@ -302,7 +284,7 @@ describe('PATCH /api/benefits/:id', () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ignored: false })
     })
-    const data: ApiResponse<BenefitResponse> = await res.json()
+    const data: ApiResponse<Benefit> = await res.json()
     
     expect(res.status).toBe(200)
     expect(data.success).toBe(true)
@@ -314,13 +296,13 @@ describe('PATCH /api/benefits/:id/activate', () => {
   it('toggles activation acknowledgment', async () => {
     // First get the current state
     const currentRes = await request('/api/benefits/amex-uber')
-    const currentData: ApiResponse<BenefitResponse> = await currentRes.json()
+    const currentData: ApiResponse<Benefit> = await currentRes.json()
     const wasActivated = currentData.data!.activationAcknowledged
     
     const res = await request('/api/benefits/amex-uber/activate', {
       method: 'PATCH'
     })
-    const data: ApiResponse<BenefitResponse> = await res.json()
+    const data: ApiResponse<Benefit> = await res.json()
     
     expect(res.status).toBe(200)
     expect(data.success).toBe(true)
@@ -331,7 +313,7 @@ describe('PATCH /api/benefits/:id/activate', () => {
     const res = await request('/api/benefits/chase-travel/activate', {
       method: 'PATCH'
     })
-    const data: ApiResponse<BenefitResponse> = await res.json()
+    const data: ApiResponse<Benefit> = await res.json()
     
     expect(res.status).toBe(400)
     expect(data.success).toBe(false)
@@ -341,7 +323,7 @@ describe('PATCH /api/benefits/:id/activate', () => {
 describe('GET /api/reminders', () => {
   it('returns upcoming expirations', async () => {
     const res = await request('/api/reminders?days=30')
-    const data: ApiResponse<BenefitResponse[]> = await res.json()
+    const data: ApiResponse<Benefit[]> = await res.json()
     
     expect(res.status).toBe(200)
     expect(data.success).toBe(true)
@@ -350,7 +332,7 @@ describe('GET /api/reminders', () => {
   
   it('returns empty array when no expiring soon', async () => {
     const res = await request('/api/reminders?days=1')
-    const data: ApiResponse<BenefitResponse[]> = await res.json()
+    const data: ApiResponse<Benefit[]> = await res.json()
     
     expect(res.status).toBe(200)
     expect(Array.isArray(data.data)).toBe(true)
@@ -360,7 +342,7 @@ describe('GET /api/reminders', () => {
 describe('GET /api/stats', () => {
   it('returns overall statistics', async () => {
     const res = await request('/api/stats')
-    const data: ApiResponse<StatsResponse> = await res.json()
+    const data: ApiResponse<Stats> = await res.json()
     
     expect(res.status).toBe(200)
     expect(data.success).toBe(true)
@@ -374,7 +356,7 @@ describe('GET /api/stats', () => {
   
   it('stats values are non-negative', async () => {
     const res = await request('/api/stats')
-    const data: ApiResponse<StatsResponse> = await res.json()
+    const data: ApiResponse<Stats> = await res.json()
     
     expect(data.data!.totalBenefits).toBeGreaterThanOrEqual(0)
     expect(data.data!.totalValue).toBeGreaterThanOrEqual(0)
@@ -387,7 +369,7 @@ describe('GET /api/stats', () => {
   it('excludes ignored benefits from stats', async () => {
     // Get initial stats
     const beforeRes = await request('/api/stats')
-    const beforeData: ApiResponse<StatsResponse> = await beforeRes.json()
+    const beforeData: ApiResponse<Stats> = await beforeRes.json()
     const initialTotal = beforeData.data!.totalBenefits
     const initialValue = beforeData.data!.totalValue
     
@@ -400,7 +382,7 @@ describe('GET /api/stats', () => {
     
     // Get stats after ignoring
     const afterRes = await request('/api/stats')
-    const afterData: ApiResponse<StatsResponse> = await afterRes.json()
+    const afterData: ApiResponse<Stats> = await afterRes.json()
     
     expect(afterData.data!.totalBenefits).toBe(initialTotal - 1)
     expect(afterData.data!.totalValue).toBe(initialValue - 200)

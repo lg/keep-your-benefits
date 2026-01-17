@@ -5,15 +5,15 @@ interface EditModalProps {
   benefit: Benefit | null;
   isOpen: boolean;
   onClose: () => void;
-  onSave: (id: string, data: { notes: string; ignored?: boolean; activationAcknowledged?: boolean; periods?: Record<string, number> }) => void;
+  onSave: (id: string, data: { currentUsed?: number; ignored?: boolean; activationAcknowledged?: boolean; periods?: Record<string, number> }) => void;
   initialPeriodId?: string;
 }
 
 export function EditModal({ benefit, isOpen, onClose, onSave, initialPeriodId }: EditModalProps) {
-  const [notes, setNotes] = useState('');
   const [ignored, setIgnored] = useState(false);
   const [activationAcknowledged, setActivationAcknowledged] = useState(false);
   const [periodUsed, setPeriodUsed] = useState<Record<string, string>>({});
+  const [currentUsed, setCurrentUsed] = useState<string>('');
   const [selectedPeriodId, setSelectedPeriodId] = useState<string>('');
   const periodTabsRef = useRef<HTMLDivElement | null>(null);
   const [visiblePeriods, setVisiblePeriods] = useState<{ id: string }[]>([]);
@@ -21,9 +21,9 @@ export function EditModal({ benefit, isOpen, onClose, onSave, initialPeriodId }:
 
   useEffect(() => {
     if (benefit) {
-      setNotes(benefit.notes);
       setIgnored(benefit.ignored);
       setActivationAcknowledged(benefit.activationAcknowledged);
+      setCurrentUsed(benefit.currentUsed.toString());
       const nextPeriodUsed = benefit.periods?.reduce<Record<string, string>>((acc, period) => {
         acc[period.id] = period.usedAmount.toString();
         return acc;
@@ -74,9 +74,7 @@ export function EditModal({ benefit, isOpen, onClose, onSave, initialPeriodId }:
     }
   }, [targetPeriodId, visiblePeriods, isOpen]);
 
-  if (!isOpen || !benefit) return null;
-
-  const notesInputId = `benefit-notes-${benefit.id}`;
+if (!isOpen || !benefit) return null;
 
   const handleOverlayClick = (event: MouseEvent<HTMLDivElement>) => {
     if (event.target === event.currentTarget) {
@@ -97,8 +95,11 @@ export function EditModal({ benefit, isOpen, onClose, onSave, initialPeriodId }:
       return acc;
     }, {});
 
+    const isMultiSegment = benefit.periods && benefit.periods.length > 0;
+    const usedAmount = isMultiSegment ? undefined : parseFloat(currentUsed) || 0;
+
     onSave(benefit.id, {
-      notes,
+      currentUsed: isMultiSegment ? undefined : usedAmount,
       ignored,
       activationAcknowledged: benefit.activationRequired ? activationAcknowledged : undefined,
       periods: Object.keys(periodUpdates).length ? periodUpdates : undefined
@@ -220,18 +221,32 @@ export function EditModal({ benefit, isOpen, onClose, onSave, initialPeriodId }:
           </div>
         )}
 
-        <div className="mb-4">
-          <label className="block text-sm text-slate-400 mb-1" htmlFor={notesInputId}>
-            Notes
-          </label>
-          <textarea
-            id={notesInputId}
-            value={notes}
-            onChange={e => setNotes(e.target.value)}
-            className="input-field h-24 resize-none"
-            placeholder="How did you use this benefit?"
-          />
-        </div>
+        {displayPeriods.length === 0 && (
+          <div className="mb-4">
+            <div className="text-sm text-slate-400 mb-2">Spend</div>
+            <div className="flex items-center justify-between gap-3">
+              <label
+                className="text-sm text-slate-400"
+                htmlFor={`current-used-${benefit.id}`}
+              >
+                Amount Used
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  id={`current-used-${benefit.id}`}
+                  type="number"
+                  value={currentUsed}
+                  onChange={e => setCurrentUsed(e.target.value)}
+                  className="input-field max-w-[160px]"
+                  min="0"
+                  max={benefit.creditAmount}
+                  step="0.01"
+                />
+                <span className="text-sm text-slate-500 whitespace-nowrap">of ${benefit.creditAmount}</span>
+              </div>
+            </div>
+          </div>
+        )}
 
         {benefit.activationRequired && (
           <div className="mb-4">

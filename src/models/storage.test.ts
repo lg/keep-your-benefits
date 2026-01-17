@@ -48,7 +48,6 @@ describe('storage user merge', () => {
         'amex-uber': {
           currentUsed: 75,
           activationAcknowledged: false,
-          notes: 'Manual update',
           status: 'pending',
           ignored: false
         }
@@ -59,7 +58,6 @@ describe('storage user merge', () => {
 
     expect(benefit?.creditAmount).toBe(200)
     expect(benefit?.currentUsed).toBe(75)
-    expect(benefit?.notes).toBe('Manual update')
     expect(benefit?.activationRequired).toBe(true)
   })
 
@@ -68,21 +66,22 @@ describe('storage user merge', () => {
 
     expect(benefit?.currentUsed).toBe(0)
     expect(benefit?.activationAcknowledged).toBe(false)
-    expect(benefit?.notes).toBe('')
     expect(benefit?.ignored).toBe(false)
   })
 })
 
 describe('storage user updates', () => {
   it('writes updates only to the user data file', () => {
-    updateBenefit('amex-uber', { notes: 'Saved note' })
+    updateBenefit('amex-uber', { ignored: true })
 
     const staticContents = JSON.parse(readFileSync(staticPath, 'utf-8'))
     const userContents = JSON.parse(readFileSync(userPath, 'utf-8'))
-    const staticBenefit = staticContents.benefits.find((benefit: { id: string }) => benefit.id === 'amex-uber')
 
-    expect(staticBenefit?.notes).toBeUndefined()
-    expect(userContents.benefits['amex-uber'].notes).toBe('Saved note')
+    expect(staticContents.benefits.find((benefit: { id: string }) => benefit.id === 'amex-uber')?.ignored).toBeUndefined()
+    expect(userContents.benefits['amex-uber'].ignored).toBe(true)
+
+    // Reset
+    updateBenefit('amex-uber', { ignored: false })
   })
 
   it('persists period updates to the user file', () => {

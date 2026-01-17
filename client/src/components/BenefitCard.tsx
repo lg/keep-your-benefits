@@ -155,12 +155,6 @@ export function BenefitCard({ benefit, onEdit, onSegmentEdit }: BenefitCardProps
           </button>
         </div>
       </div>
-
-      {benefit.notes && (
-        <div className="mt-2 p-2 bg-slate-900 rounded text-sm text-slate-400">
-          📝 {benefit.notes}
-        </div>
-      )}
     </div>
   );
 }
