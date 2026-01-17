@@ -1,5 +1,7 @@
 // Types for CSV import functionality
 
+import type { StoredTransaction } from '../../../shared/types';
+
 export interface ParsedTransaction {
   date: Date;
   description: string;
@@ -27,7 +29,8 @@ export interface ImportResult {
 
 export interface ImportUsage {
   currentUsed: number;
-  periods?: Record<string, number>;
+  periods?: Record<string, { usedAmount: number; transactions?: StoredTransaction[] }>;
+  transactions?: StoredTransaction[];
 }
 
 export type CardType = 'amex-platinum' | 'chase-sapphire-reserve';

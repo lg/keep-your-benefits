@@ -148,15 +148,15 @@ export function matchCredits(
 
 /**
  * Aggregate matched credits into usage amounts per benefit and period
- * Returns a map of benefitId -> { currentUsed, periods? }
+ * Returns a map of benefitId -> { currentUsed, periods?, transactions? }
  */
 export function aggregateCredits(
   matchedCredits: MatchedCredit[],
   benefits: BenefitDefinition[]
-): Map<string, { currentUsed: number; periods?: Record<string, number> }> {
+): Map<string, { currentUsed: number; periods?: Record<string, { usedAmount: number; transactions?: { date: string; description: string; amount: number }[] }>; transactions?: { date: string; description: string; amount: number }[] }> {
   const result = new Map<
     string,
-    { currentUsed: number; periods?: Record<string, number> }
+    { currentUsed: number; periods?: Record<string, { usedAmount: number; transactions?: { date: string; description: string; amount: number }[] }>; transactions?: { date: string; description: string; amount: number }[] }
   >();
 
   // Create benefit lookup for max amounts
@@ -172,20 +172,32 @@ export function aggregateCredits(
     const existing = result.get(credit.benefitId) ?? {
       currentUsed: 0,
       periods: undefined,
+      transactions: undefined,
+    };
+
+    const storedTransaction = {
+      date: credit.transaction.date.toISOString(),
+      description: credit.transaction.description,
+      amount: credit.creditAmount,
     };
 
     if (credit.periodId && benefit?.periods) {
       // Period-based benefit
       existing.periods = existing.periods ?? {};
-      const currentPeriodAmount = existing.periods[credit.periodId] ?? 0;
-      existing.periods[credit.periodId] =
-        currentPeriodAmount + credit.creditAmount;
+      existing.periods[credit.periodId] = existing.periods[credit.periodId] ?? {
+        usedAmount: 0,
+        transactions: [],
+      };
+      existing.periods[credit.periodId].usedAmount += credit.creditAmount;
+      existing.periods[credit.periodId].transactions?.push(storedTransaction);
 
       // Also update the total currentUsed
       existing.currentUsed += credit.creditAmount;
     } else {
       // Non-period benefit or no period matched
       existing.currentUsed += credit.creditAmount;
+      existing.transactions = existing.transactions ?? [];
+      existing.transactions.push(storedTransaction);
     }
 
     result.set(credit.benefitId, existing);
@@ -205,10 +217,25 @@ export function aggregateCredits(
       const maxPerPeriod = benefit.creditAmount / periodCount;
 
       for (const periodId of Object.keys(usage.periods)) {
-        usage.periods[periodId] = Math.min(
-          usage.periods[periodId],
-          maxPerPeriod
-        );
+        const periodUsage: { usedAmount: number; transactions?: { date: string; description: string; amount: number }[] } = usage.periods[periodId];
+        periodUsage.usedAmount = Math.min(periodUsage.usedAmount, maxPerPeriod);
+
+        // Cap transactions in this period proportionally if needed
+        if (periodUsage.transactions && periodUsage.transactions.length > 0) {
+          let runningTotal = 0;
+          const maxIndex = periodUsage.transactions.findIndex((t: { amount: number }) => {
+            runningTotal += t.amount;
+            return runningTotal > maxPerPeriod;
+          });
+          if (maxIndex >= 0) {
+            // Trim transactions that exceed the cap
+            const excess = runningTotal - maxPerPeriod;
+            periodUsage.transactions[maxIndex] = {
+              ...periodUsage.transactions[maxIndex],
+              amount: periodUsage.transactions[maxIndex].amount - excess,
+            };
+          }
+        }
       }
     }
   }

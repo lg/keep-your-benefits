@@ -21,7 +21,11 @@ interface ImportModalProps {
   onImport: (
     aggregated: Map<
       string,
-      { currentUsed: number; periods?: Record<string, number> }
+      {
+        currentUsed: number;
+        periods?: Record<string, { usedAmount: number; transactions?: { date: string; description: string; amount: number }[] }>;
+        transactions?: { date: string; description: string; amount: number }[];
+      }
     >
   ) => void;
 }

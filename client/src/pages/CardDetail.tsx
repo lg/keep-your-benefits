@@ -2,9 +2,9 @@ import { useState, useCallback } from 'react';
 import type { Benefit, CreditCard, BenefitDefinition } from '../types';
 import { BenefitCard } from '../components/BenefitCard';
 import { CardHeader } from '../components/CardHeader';
-import { EditModal } from '../components/EditModal';
+import { DetailsModal } from '../components/DetailsModal';
 import { ImportModal } from '../components/ImportModal';
-import { useEditModal } from '../hooks/useEditModal';
+import { useDetailsModal } from '../hooks/useDetailsModal';
 import { calculateStats } from '@shared/utils';
 
 interface CardDetailProps {
@@ -13,22 +13,30 @@ interface CardDetailProps {
   allBenefits: Benefit[];
   definitions: BenefitDefinition[];
   onBack: () => void;
-  onUpdateBenefit: (id: string, data: { currentUsed?: number; ignored?: boolean; activationAcknowledged?: boolean; periods?: Record<string, number> }) => void;
-  onToggleIgnored: (id: string, data: { ignored: boolean }) => void;
-  onImport: (cardId: string, aggregated: Map<string, { currentUsed: number; periods?: Record<string, number> }>) => void;
+  onToggleActivation: (id: string) => void;
+  onToggleVisibility: (id: string) => void;
+  onImport: (cardId: string, aggregated: Map<string, {
+    currentUsed: number;
+    periods?: Record<string, { usedAmount: number; transactions?: { date: string; description: string; amount: number }[] }>;
+    transactions?: { date: string; description: string; amount: number }[];
+  }>) => void;
 }
 
-export function CardDetail ({ 
-  card, 
-  benefits, 
+export function CardDetail({
+  card,
+  benefits,
   allBenefits,
   definitions,
-  onBack, 
-  onUpdateBenefit,
-  onToggleIgnored,
+  onBack,
+  onToggleActivation,
+  onToggleVisibility,
   onImport
 }: CardDetailProps) {
-  const { editingBenefit, isModalOpen, initialPeriodId, handleEdit, handleEditPeriod, handleClose } = useEditModal();
+  const { viewingBenefitId, isModalOpen, initialPeriodId, handleViewDetails, handleViewPeriod, handleClose } = useDetailsModal();
+
+  const viewingBenefit = viewingBenefitId
+    ? allBenefits.find(b => b.id === viewingBenefitId) ?? null
+    : null;
   
   const [isImportOpen, setIsImportOpen] = useState(false);
 
@@ -40,7 +48,11 @@ export function CardDetail ({
     setIsImportOpen(false);
   }, []);
 
-  const handleImportConfirm = useCallback((aggregated: Map<string, { currentUsed: number; periods?: Record<string, number> }>) => {
+  const handleImportConfirm = useCallback((aggregated: Map<string, {
+    currentUsed: number;
+    periods?: Record<string, { usedAmount: number; transactions?: { date: string; description: string; amount: number }[] }>;
+    transactions?: { date: string; description: string; amount: number }[];
+  }>) => {
     onImport(card.id, aggregated);
     setIsImportOpen(false);
   }, [card.id, onImport]);
@@ -58,26 +70,27 @@ export function CardDetail ({
         card={card} 
         stats={calculateStats(benefits)} 
         allBenefits={allBenefits}
-        onUpdateBenefit={onToggleIgnored}
+        onUpdateBenefit={onToggleVisibility}
         onImportClick={handleImportClick}
       />
 
       <div className="grid gap-4 md:grid-cols-2">
         {benefits.map(benefit => (
-<BenefitCard
-              key={benefit.id}
-              benefit={benefit}
-              onEdit={handleEdit}
-              onSegmentEdit={handleEditPeriod}
-            />
+          <BenefitCard
+            key={benefit.id}
+            benefit={benefit}
+            onViewDetails={handleViewDetails}
+            onViewPeriod={handleViewPeriod}
+          />
         ))}
       </div>
 
-      <EditModal
-        benefit={editingBenefit}
+      <DetailsModal
+        benefit={viewingBenefit}
         isOpen={isModalOpen}
         onClose={handleClose}
-        onSave={onUpdateBenefit}
+        onToggleActivation={onToggleActivation}
+        onToggleVisibility={onToggleVisibility}
         initialPeriodId={initialPeriodId}
       />
 

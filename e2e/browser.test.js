@@ -56,87 +56,229 @@ test.describe('Benefit Cards', () => {
   });
 });
 
-test.describe('Edit Modal', () => {
+test.describe('Details Modal', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
     await page.evaluate(() => localStorage.clear());
     await page.reload();
   });
 
-  test('opens when Edit button clicked', async ({ page }) => {
+  test('opens when Details button clicked', async ({ page }) => {
     const uberCard = page.locator('.benefit-card', { hasText: 'Uber Cash' });
-    await uberCard.getByRole('button', { name: 'Edit' }).click();
+    await uberCard.getByRole('button', { name: 'Details' }).click();
     await expect(page.getByRole('dialog')).toBeVisible();
   });
 
-  test('saves period spend', async ({ page }) => {
+  test('shows no transactions message when empty', async ({ page }) => {
     const uberCard = page.locator('.benefit-card', { hasText: 'Uber Cash' });
-    await uberCard.getByRole('button', { name: 'Edit' }).click();
-    const dialog = page.getByRole('dialog');
-    await dialog.getByRole('spinbutton').fill('15');
-    await dialog.getByRole('button', { name: 'Save' }).click();
-    await expect(uberCard.getByText('$15 / $200')).toBeVisible();
+    await uberCard.getByRole('button', { name: 'Details' }).click();
+    await expect(page.getByRole('dialog')).toBeVisible();
+    await expect(page.getByText('No transactions imported yet. Import your statement to track usage.')).toBeVisible();
   });
 
-  test('updates prior period segment for Lyft credit', async ({ page }) => {
-    const lyftCard = page.locator('.benefit-card', { hasText: 'Lyft Credit' });
-    await expect(lyftCard.locator('.progress-segment.completed')).toHaveCount(0);
-
-    await lyftCard.getByRole('button', { name: 'Edit' }).click();
+  test('activation toggle saves immediately', async ({ page }) => {
+    const uberCard = page.locator('.benefit-card', { hasText: 'Uber Cash' });
+    await uberCard.getByRole('button', { name: 'Details' }).click();
     const dialog = page.getByRole('dialog');
-    const priorPeriod = dialog.getByRole('button', { name: /Nov 2025 – Dec 2025/ });
-    await priorPeriod.scrollIntoViewIfNeeded();
-    await priorPeriod.click();
-    await dialog.getByRole('spinbutton').fill('10');
-    await dialog.getByRole('button', { name: 'Save' }).click();
+    const activationCheckbox = dialog.getByLabel('Enrolled/activated benefit');
 
-    await expect(lyftCard.locator('.progress-segment.completed')).toHaveCount(1);
+    await activationCheckbox.check();
+    await expect(uberCard.getByText('Activated')).toBeVisible();
+
+    await page.reload();
+    const reloadedCard = page.locator('.benefit-card', { hasText: 'Uber Cash' });
+    await expect(reloadedCard.getByText('Activated')).toBeVisible();
+  });
+
+  test('visibility toggle saves and hides benefit on reload', async ({ page }) => {
+    const uberCard = page.locator('.benefit-card', { hasText: 'Uber Cash' });
+    await uberCard.getByRole('button', { name: 'Details' }).click();
+    const dialog = page.getByRole('dialog');
+    const visibilityCheckbox = dialog.getByLabel('Show in list');
+
+    await visibilityCheckbox.uncheck();
+    await dialog.getByRole('button', { name: 'Close' }).click();
+
+    await page.reload();
+    await expect(page.getByRole('heading', { name: 'Uber Cash' })).toBeHidden();
   });
 });
 
-test.describe('Activation Toggle', () => {
+test.describe('Transaction-based Progress', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
     await page.evaluate(() => localStorage.clear());
     await page.reload();
   });
 
-  test('updates activation via edit modal and persists', async ({ page }) => {
+  test('past period without transactions shows as missed', async ({ page }) => {
+    await page.evaluate(() => {
+      const userData = {
+        benefits: {
+          'csr-lyft': {
+            currentUsed: 0,
+            activationAcknowledged: true,
+            status: 'pending',
+            ignored: false,
+            periods: {
+              'csr-lyft-2025-12': {
+                usedAmount: 0,
+                status: 'pending',
+                transactions: []
+              }
+            }
+          }
+        }
+      };
+      localStorage.setItem('user-benefits', JSON.stringify(userData));
+    });
+    await page.reload();
+
+    const lyftCard = page.locator('.benefit-card', { hasText: 'Lyft Credit' });
+    await expect(lyftCard.locator('.progress-segment.missed')).toHaveCount(6);
+    await expect(lyftCard.locator('.progress-segment.completed')).toHaveCount(0);
+  });
+
+  test('current period without transactions shows as pending', async ({ page }) => {
+    await page.evaluate(() => {
+      const userData = {
+        benefits: {
+          'csr-lyft': {
+            currentUsed: 0,
+            activationAcknowledged: true,
+            status: 'pending',
+            ignored: false,
+            periods: {
+              'csr-lyft-2026-01': {
+                usedAmount: 0,
+                status: 'pending',
+                transactions: []
+              }
+            }
+          }
+        }
+      };
+      localStorage.setItem('user-benefits', JSON.stringify(userData));
+    });
+    await page.reload();
+
+    const lyftCard = page.locator('.benefit-card', { hasText: 'Lyft Credit' });
+    await expect(lyftCard.locator('.progress-segment.pending')).toHaveCount(1);
+    await expect(lyftCard.locator('.progress-segment.completed')).toHaveCount(0);
+  });
+
+  test('period with transactions summing to full amount shows as completed', async ({ page }) => {
+    await page.evaluate(() => {
+      const userData = {
+        benefits: {
+          'csr-lyft': {
+            currentUsed: 0,
+            activationAcknowledged: true,
+            status: 'pending',
+            ignored: false,
+            periods: {
+              'csr-lyft-2026-01': {
+                usedAmount: 0,
+                status: 'pending',
+                transactions: [
+                  { date: '2026-01-15', description: 'Lyft ride', amount: 10 }
+                ]
+              }
+            }
+          }
+        }
+      };
+      localStorage.setItem('user-benefits', JSON.stringify(userData));
+    });
+    await page.reload();
+
+    const lyftCard = page.locator('.benefit-card', { hasText: 'Lyft Credit' });
+    await expect(lyftCard.locator('.progress-segment.completed')).toHaveCount(1);
+  });
+
+  test('stale usedAmount is ignored without transactions', async ({ page }) => {
+    await page.evaluate(() => {
+      const userData = {
+        benefits: {
+          'csr-lyft': {
+            currentUsed: 100,
+            activationAcknowledged: true,
+            status: 'completed',
+            ignored: false,
+            periods: {
+              'csr-lyft-2025-12': {
+                usedAmount: 100,
+                status: 'completed',
+                transactions: []
+              }
+            }
+          }
+        }
+      };
+      localStorage.setItem('user-benefits', JSON.stringify(userData));
+    });
+    await page.reload();
+
+    const lyftCard = page.locator('.benefit-card', { hasText: 'Lyft Credit' });
+    await expect(lyftCard.locator('.progress-segment.completed')).toHaveCount(0);
+    await expect(lyftCard.locator('.progress-segment.missed')).toHaveCount(6);
+  });
+
+  test('benefit with sufficient transactions shows completed segment', async ({ page }) => {
+    await page.evaluate(() => {
+      const userData = {
+        benefits: {
+          'amex-uber-cash': {
+            currentUsed: 0,
+            activationAcknowledged: true,
+            status: 'pending',
+            ignored: false,
+            periods: {
+              'amex-uber-cash-2026-01': {
+                usedAmount: 0,
+                status: 'pending',
+                transactions: [
+                  { date: '2026-01-15', description: 'Uber Eats', amount: 17 }
+                ]
+              }
+            }
+          }
+        }
+      };
+      localStorage.setItem('user-benefits', JSON.stringify(userData));
+    });
+    await page.reload();
+
     const uberCard = page.locator('.benefit-card', { hasText: 'Uber Cash' });
-    const activationLabel = uberCard.getByText(/Needs Activation|Activated/);
-    const wasActivated = await activationLabel.innerText();
+    await expect(uberCard.locator('.progress-segment.completed')).toHaveCount(1);
+  });
 
-    await uberCard.getByRole('button', { name: 'Edit' }).click();
-    const dialog = page.getByRole('dialog');
-    const activationCheckbox = dialog.getByLabel('Enrolled/activated benefit');
+  test('benefit without transactions shows as pending segment', async ({ page }) => {
+    await page.evaluate(() => {
+      const userData = {
+        benefits: {
+          'amex-uber-cash': {
+            currentUsed: 150,
+            activationAcknowledged: true,
+            status: 'completed',
+            ignored: false,
+            periods: {
+              'amex-uber-cash-2026-01': {
+                usedAmount: 150,
+                status: 'completed',
+                transactions: []
+              }
+            }
+          }
+        }
+      };
+      localStorage.setItem('user-benefits', JSON.stringify(userData));
+    });
+    await page.reload();
 
-    if (wasActivated === 'Activated') {
-      await activationCheckbox.uncheck();
-      await dialog.getByRole('button', { name: 'Save' }).click();
-      await expect(uberCard.getByText('Needs Activation')).toBeVisible();
-
-      await page.reload();
-      const reloadedCard = page.locator('.benefit-card', { hasText: 'Uber Cash' });
-      await expect(reloadedCard.getByText('Needs Activation')).toBeVisible();
-    } else {
-      await activationCheckbox.check();
-      await dialog.getByRole('button', { name: 'Save' }).click();
-      await expect(uberCard.getByText('Activated')).toBeVisible();
-
-      await page.reload();
-      const reloadedCard = page.locator('.benefit-card', { hasText: 'Uber Cash' });
-      await expect(reloadedCard.getByText('Activated')).toBeVisible();
-
-      await reloadedCard.getByRole('button', { name: 'Edit' }).click();
-      const dialogAfterReload = page.getByRole('dialog');
-      await dialogAfterReload.getByLabel('Enrolled/activated benefit').uncheck();
-      await dialogAfterReload.getByRole('button', { name: 'Save' }).click();
-      await expect(reloadedCard.getByText('Needs Activation')).toBeVisible();
-
-      await page.reload();
-      const finalCard = page.locator('.benefit-card', { hasText: 'Uber Cash' });
-      await expect(finalCard.getByText('Needs Activation')).toBeVisible();
-    }
+    const uberCard = page.locator('.benefit-card', { hasText: 'Uber Cash' });
+    await expect(uberCard.locator('.progress-segment.completed')).toHaveCount(0);
+    await expect(uberCard.locator('.progress-segment.pending')).toHaveCount(1);
   });
 });
 

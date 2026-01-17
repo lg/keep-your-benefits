@@ -1,19 +1,19 @@
 import { useState } from 'react';
 import type { Benefit } from '../types';
 
-export function useEditModal() {
-  const [editingBenefit, setEditingBenefit] = useState<Benefit | null>(null);
+export function useDetailsModal() {
+  const [viewingBenefitId, setViewingBenefitId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [initialPeriodId, setInitialPeriodId] = useState<string | undefined>(undefined);
 
-  const handleEdit = (benefit: Benefit) => {
-    setEditingBenefit(benefit);
+  const handleViewDetails = (benefit: Benefit) => {
+    setViewingBenefitId(benefit.id);
     setIsModalOpen(true);
     setInitialPeriodId(undefined);
   };
 
-  const handleEditPeriod = (benefit: Benefit, periodId: string) => {
-    setEditingBenefit(benefit);
+  const handleViewPeriod = (benefit: Benefit, periodId: string) => {
+    setViewingBenefitId(benefit.id);
     setIsModalOpen(true);
     setInitialPeriodId(periodId);
   };
@@ -23,5 +23,5 @@ export function useEditModal() {
     setInitialPeriodId(undefined);
   };
 
-  return { editingBenefit, isModalOpen, initialPeriodId, handleEdit, handleEditPeriod, handleClose };
+  return { viewingBenefitId, isModalOpen, initialPeriodId, handleViewDetails, handleViewPeriod, handleClose };
 }

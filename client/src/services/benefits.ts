@@ -26,10 +26,13 @@ function mergePeriods(
 
   return periods.map((period) => {
     const userPeriod = userPeriods?.[period.id];
+    const transactions = userPeriod?.transactions ?? [];
+    const usedAmount = transactions.reduce((sum, tx) => sum + tx.amount, 0);
     return {
       ...period,
-      usedAmount: userPeriod?.usedAmount ?? 0,
+      usedAmount,
       status: userPeriod?.status ?? 'pending',
+      transactions,
     };
   });
 }
@@ -42,15 +45,17 @@ function mergeBenefit(
   const mergedPeriods = mergePeriods(definition.periods, resolvedUserState.periods);
 
   // For multi-period benefits, currentUsed is the sum of all period amounts
+  // For single-period benefits, derive from transactions
   const currentUsed = mergedPeriods?.length
     ? mergedPeriods.reduce((sum, p) => sum + p.usedAmount, 0)
-    : resolvedUserState.currentUsed;
+    : (resolvedUserState.transactions?.reduce((sum, tx) => sum + tx.amount, 0) ?? resolvedUserState.currentUsed);
 
   return {
     ...definition,
     ...resolvedUserState,
     currentUsed,
     periods: mergedPeriods,
+    transactions: resolvedUserState.transactions,
   };
 }
 
@@ -93,34 +98,13 @@ export function updateBenefit(
   definition: BenefitDefinition,
   updates: UpdateBenefitRequest
 ): Benefit {
-  const periodUpdates = updates.periods
-    ? Object.entries(updates.periods).reduce<Record<string, BenefitPeriodUserState>>(
-        (acc, [periodId, usedAmount]) => {
-          acc[periodId] = {
-            usedAmount,
-            status: usedAmount >= definition.creditAmount ? 'completed' : 'pending',
-          };
-          return acc;
-        },
-        {}
-      )
-    : undefined;
-
   const userStateUpdates: Partial<BenefitUserState> = {};
 
-  if (updates.currentUsed !== undefined) {
-    userStateUpdates.currentUsed = updates.currentUsed;
-  }
   if (updates.status !== undefined) {
     userStateUpdates.status = updates.status;
   }
   if (updates.ignored !== undefined) {
     userStateUpdates.ignored = updates.ignored;
-  }
-  if (periodUpdates) {
-    const userData = getUserBenefitsData();
-    const existingPeriods = userData.benefits[id]?.periods ?? {};
-    userStateUpdates.periods = { ...existingPeriods, ...periodUpdates };
   }
 
   const updatedState = updateUserState(id, userStateUpdates);

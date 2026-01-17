@@ -23,11 +23,11 @@ function StatusBadge({ status }: StatusBadgeProps) {
 
 interface BenefitCardProps {
   benefit: Benefit;
-  onEdit: (benefit: Benefit) => void;
-  onSegmentEdit?: (benefit: Benefit, periodId: string) => void;
+  onViewDetails: (benefit: Benefit) => void;
+  onViewPeriod?: (benefit: Benefit, periodId: string) => void;
 }
 
-function BenefitCardComponent({ benefit, onEdit, onSegmentEdit }: BenefitCardProps) {
+function BenefitCardComponent({ benefit, onViewDetails, onViewPeriod }: BenefitCardProps) {
   const daysUntilExpiry = getDaysUntilExpiry(benefit.endDate);
   const overallTimeProgress = getTimeProgress(benefit.startDate, benefit.endDate);
 
@@ -47,7 +47,8 @@ function BenefitCardComponent({ benefit, onEdit, onSegmentEdit }: BenefitCardPro
         const isFuture = now < start;
         const isPast = now > end;
         const isCurrent = !isFuture && !isPast;
-        const isComplete = p.usedAmount >= segmentValue;
+        const hasTransactions = p.transactions && p.transactions.length > 0;
+        const isComplete = hasTransactions && p.usedAmount >= segmentValue;
 
         let status: ProgressSegment['status'] = 'pending';
         if (isFuture) {
@@ -75,7 +76,8 @@ function BenefitCardComponent({ benefit, onEdit, onSegmentEdit }: BenefitCardPro
 
     const isComplete = benefit.currentUsed >= benefit.creditAmount;
     const isPast = daysUntilExpiry <= 0;
-    const status: ProgressSegment['status'] = isComplete ? 'completed' : isPast ? 'missed' : 'pending';
+    const hasTransactions = benefit.transactions && benefit.transactions.length > 0;
+    const status: ProgressSegment['status'] = hasTransactions && isComplete ? 'completed' : isPast ? 'missed' : 'pending';
     const isCurrent = !isPast;
 
     return [
@@ -98,11 +100,11 @@ function BenefitCardComponent({ benefit, onEdit, onSegmentEdit }: BenefitCardPro
 
   const handleSegmentClick = useCallback((segment: ProgressSegment) => {
     if (segment.id === 'overall') {
-      onEdit(benefit);
-    } else if (onSegmentEdit) {
-      onSegmentEdit(benefit, segment.id);
+      onViewDetails(benefit);
+    } else if (onViewPeriod) {
+      onViewPeriod(benefit, segment.id);
     }
-  }, [benefit, onEdit, onSegmentEdit]);
+  }, [benefit, onViewDetails, onViewPeriod]);
 
   return (
     <div className={`benefit-card ${activationClass}`}>
@@ -147,12 +149,12 @@ function BenefitCardComponent({ benefit, onEdit, onSegmentEdit }: BenefitCardPro
               {benefit.activationAcknowledged ? 'Activated' : 'Needs Activation'}
             </span>
           ) : null}
-          <button
-            onClick={() => onEdit(benefit)}
-            className="btn-secondary text-xs px-3 py-1"
-          >
-            Edit
-          </button>
+           <button
+             onClick={() => onViewDetails(benefit)}
+             className="btn-secondary text-xs px-3 py-1"
+           >
+             Details
+           </button>
         </div>
       </div>
     </div>

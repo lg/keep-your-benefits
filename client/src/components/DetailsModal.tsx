@@ -1,35 +1,24 @@
 import { useState, useEffect, useRef, useLayoutEffect, type MouseEvent, type KeyboardEvent } from 'react';
 import type { Benefit } from '../types';
+import type { StoredTransaction } from '../../../shared/types';
 
-interface EditModalProps {
+interface DetailsModalProps {
   benefit: Benefit | null;
   isOpen: boolean;
   onClose: () => void;
-  onSave: (id: string, data: { currentUsed?: number; ignored?: boolean; activationAcknowledged?: boolean; periods?: Record<string, number> }) => void;
+  onToggleActivation: (id: string) => void;
+  onToggleVisibility: (id: string) => void;
   initialPeriodId?: string;
 }
 
-export function EditModal({ benefit, isOpen, onClose, onSave, initialPeriodId }: EditModalProps) {
-  const [ignored, setIgnored] = useState(false);
-  const [activationAcknowledged, setActivationAcknowledged] = useState(false);
-  const [periodUsed, setPeriodUsed] = useState<Record<string, string>>({});
-  const [currentUsed, setCurrentUsed] = useState<string>('');
-  const [selectedPeriodId, setSelectedPeriodId] = useState<string>('');
-  const periodTabsRef = useRef<HTMLDivElement | null>(null);
+export function DetailsModal({ benefit, isOpen, onClose, onToggleActivation, onToggleVisibility, initialPeriodId }: DetailsModalProps) {
+  const periodTabsRef = useRef<HTMLDivElement>(null);
   const [visiblePeriods, setVisiblePeriods] = useState<{ id: string }[]>([]);
   const [targetPeriodId, setTargetPeriodId] = useState<string>('');
+  const [selectedPeriodId, setSelectedPeriodId] = useState<string>('');
 
   useEffect(() => {
     if (benefit) {
-      setIgnored(benefit.ignored);
-      setActivationAcknowledged(benefit.activationAcknowledged);
-      setCurrentUsed(benefit.currentUsed.toString());
-      const nextPeriodUsed = benefit.periods?.reduce<Record<string, string>>((acc, period) => {
-        acc[period.id] = period.usedAmount.toString();
-        return acc;
-      }, {});
-      setPeriodUsed(nextPeriodUsed ?? {});
-
       const now = new Date();
       const periods = (benefit.periods ?? [])
         .filter(period => new Date(period.startDate) <= now)
@@ -61,7 +50,7 @@ export function EditModal({ benefit, isOpen, onClose, onSave, initialPeriodId }:
   useEffect(() => {
     if (!periodTabsRef.current || !targetPeriodId || visiblePeriods.length === 0) return;
     const container = periodTabsRef.current;
-    const targetIndex = visiblePeriods.findIndex(p => p.id === targetPeriodId);
+    const targetIndex = visiblePeriods.findIndex((p: { id: string }) => p.id === targetPeriodId);
     if (targetIndex >= 0) {
       const timer = setTimeout(() => {
         const tabElements = container.querySelectorAll('button');
@@ -74,7 +63,7 @@ export function EditModal({ benefit, isOpen, onClose, onSave, initialPeriodId }:
     }
   }, [targetPeriodId, visiblePeriods, isOpen]);
 
-if (!isOpen || !benefit) return null;
+  if (!isOpen || !benefit) return null;
 
   const handleOverlayClick = (event: MouseEvent<HTMLDivElement>) => {
     if (event.target === event.currentTarget) {
@@ -87,24 +76,6 @@ if (!isOpen || !benefit) return null;
       event.preventDefault();
       onClose();
     }
-  };
-
-  const handleSave = () => {
-    const periodUpdates = Object.entries(periodUsed).reduce<Record<string, number>>((acc, [periodId, value]) => {
-      acc[periodId] = parseFloat(value) || 0;
-      return acc;
-    }, {});
-
-    const isMultiSegment = benefit.periods && benefit.periods.length > 0;
-    const usedAmount = isMultiSegment ? undefined : parseFloat(currentUsed) || 0;
-
-    onSave(benefit.id, {
-      currentUsed: isMultiSegment ? undefined : usedAmount,
-      ignored,
-      activationAcknowledged: benefit.activationRequired ? activationAcknowledged : undefined,
-      periods: Object.keys(periodUpdates).length ? periodUpdates : undefined
-    });
-    onClose();
   };
 
   const periodValue = benefit.periods?.length
@@ -127,6 +98,30 @@ if (!isOpen || !benefit) return null;
     return `${startLabel} – ${endLabel}`;
   };
 
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  };
+
+  const getPeriodTransactions = (): StoredTransaction[] => {
+    if (selectedPeriodId && benefit.periods) {
+      const period = benefit.periods.find(p => p.id === selectedPeriodId);
+      return period?.transactions ?? [];
+    }
+    return benefit.transactions ?? [];
+  };
+
+  const getPeriodUsedAmount = (): number => {
+    if (selectedPeriodId && benefit.periods) {
+      const period = benefit.periods.find(p => p.id === selectedPeriodId);
+      return period?.usedAmount ?? 0;
+    }
+    return benefit.currentUsed;
+  };
+
+  const transactions = getPeriodTransactions();
+  const usedAmount = getPeriodUsedAmount();
+
   return (
     <div
       className="modal-overlay"
@@ -136,11 +131,11 @@ if (!isOpen || !benefit) return null;
       tabIndex={0}
     >
       <div className="modal-content" role="dialog" aria-modal="true">
-        <h2 className="text-xl font-bold mb-4">Edit {benefit.name}</h2>
-        
+        <h2 className="text-xl font-bold mb-4">{benefit.name}</h2>
+
         {displayPeriods.length > 0 && (
           <div className="mb-4">
-            <div className="text-sm text-slate-400 mb-2">Segment Spend</div>
+            <div className="text-sm text-slate-400 mb-2">Segment Transactions</div>
             <div className="grid gap-3">
               <div className="grid gap-2">
                 <div className="text-sm text-slate-400">Period</div>
@@ -150,8 +145,9 @@ if (!isOpen || !benefit) return null;
                 >
                   {displayPeriods.map(period => {
                     const isSelected = period.id === selectedPeriodIdValue;
-                    const usedValue = parseFloat(periodUsed[period.id] ?? '0') || 0;
-                    const isComplete = usedValue >= periodValue;
+                    const periodUsed = period.usedAmount;
+                    const hasTransactions = period.transactions && period.transactions.length > 0;
+                    const isComplete = hasTransactions && periodUsed >= periodValue;
                     const endDate = new Date(period.endDate);
                     const isPast = now > endDate;
                     const borderClass = isComplete
@@ -179,7 +175,7 @@ if (!isOpen || !benefit) return null;
                         <div className="flex flex-col items-center leading-tight">
                           <span>{formatPeriodLabel(period.startDate, period.endDate)}</span>
                           <span className={isSelected ? 'text-slate-700' : spentTextClass}>
-                            ${usedValue.toFixed(0)} of ${periodValue.toFixed(0)}
+                            ${periodUsed.toFixed(0)} of ${periodValue.toFixed(0)}
                           </span>
                         </div>
                       </button>
@@ -189,32 +185,29 @@ if (!isOpen || !benefit) return null;
               </div>
               {selectedPeriod && (
                 <div className="grid gap-2 pl-4 border-l border-slate-700">
-                  <div className="flex items-center justify-between gap-3">
-                    <label
-                      className="text-sm text-slate-400"
-                      htmlFor={`period-used-${benefit.id}-${selectedPeriod.id}`}
-                    >
-                      Spent ({formatPeriodLabel(selectedPeriod.startDate, selectedPeriod.endDate)})
-                    </label>
-                    <div className="flex items-center gap-2">
-                      <input
-                        id={`period-used-${benefit.id}-${selectedPeriod.id}`}
-                        type="number"
-                        value={periodUsed[selectedPeriod.id] ?? ''}
-                        onChange={e =>
-                          setPeriodUsed(prev => ({
-                            ...prev,
-                            [selectedPeriod.id]: e.target.value
-                          }))
-                        }
-                        className="input-field max-w-[160px]"
-                        min="0"
-                        max={periodValue}
-                        step="0.01"
-                      />
-                      <span className="text-sm text-slate-500 whitespace-nowrap">of ${periodValue.toFixed(0)}</span>
-                    </div>
+                  <div className="text-sm text-slate-400">
+                    Transactions ({formatPeriodLabel(selectedPeriod.startDate, selectedPeriod.endDate)})
                   </div>
+                  {transactions.length > 0 ? (
+                    <div className="space-y-1">
+                      {transactions.map((tx, idx) => (
+                        <div key={idx} className="flex justify-between text-sm py-1">
+                          <span className="text-slate-300">
+                            {formatDate(tx.date)} {tx.description}
+                          </span>
+                          <span className="text-emerald-300">${tx.amount.toFixed(2)}</span>
+                        </div>
+                      ))}
+                      <div className="flex justify-between text-sm py-2 border-t border-slate-700 font-medium">
+                        <span className="text-slate-300">Total</span>
+                        <span className="text-slate-100">${usedAmount.toFixed(2)} of ${periodValue.toFixed(0)}</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-sm text-slate-500 italic">
+                      No transactions imported yet. Import your statement to track usage.
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -223,28 +216,27 @@ if (!isOpen || !benefit) return null;
 
         {displayPeriods.length === 0 && (
           <div className="mb-4">
-            <div className="text-sm text-slate-400 mb-2">Spend</div>
-            <div className="flex items-center justify-between gap-3">
-              <label
-                className="text-sm text-slate-400"
-                htmlFor={`current-used-${benefit.id}`}
-              >
-                Amount Used
-              </label>
-              <div className="flex items-center gap-2">
-                <input
-                  id={`current-used-${benefit.id}`}
-                  type="number"
-                  value={currentUsed}
-                  onChange={e => setCurrentUsed(e.target.value)}
-                  className="input-field max-w-[160px]"
-                  min="0"
-                  max={benefit.creditAmount}
-                  step="0.01"
-                />
-                <span className="text-sm text-slate-500 whitespace-nowrap">of ${benefit.creditAmount}</span>
+            <div className="text-sm text-slate-400 mb-2">Transactions</div>
+            {transactions.length > 0 ? (
+              <div className="space-y-1">
+                {transactions.map((tx, idx) => (
+                  <div key={idx} className="flex justify-between text-sm py-1">
+                    <span className="text-slate-300">
+                      {formatDate(tx.date)} {tx.description}
+                    </span>
+                    <span className="text-emerald-300">${tx.amount.toFixed(2)}</span>
+                  </div>
+                ))}
+                <div className="flex justify-between text-sm py-2 border-t border-slate-700 font-medium">
+                  <span className="text-slate-300">Total</span>
+                  <span className="text-slate-100">${usedAmount.toFixed(2)} of ${benefit.creditAmount}</span>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="text-sm text-slate-500 italic">
+                No transactions imported yet. Import your statement to track usage.
+              </div>
+            )}
           </div>
         )}
 
@@ -253,8 +245,8 @@ if (!isOpen || !benefit) return null;
             <label className="flex items-center gap-2 cursor-pointer">
               <input
                 type="checkbox"
-                checked={activationAcknowledged}
-                onChange={() => setActivationAcknowledged(!activationAcknowledged)}
+                checked={benefit.activationAcknowledged}
+                onChange={() => onToggleActivation(benefit.id)}
                 className="rounded border-slate-600 bg-slate-700 text-blue-500 focus:ring-blue-500"
               />
               <span className="text-sm">Enrolled/activated benefit</span>
@@ -266,8 +258,8 @@ if (!isOpen || !benefit) return null;
           <label className="flex items-center gap-2 cursor-pointer">
             <input
               type="checkbox"
-              checked={!ignored}
-              onChange={() => setIgnored(!ignored)}
+              checked={!benefit.ignored}
+              onChange={() => onToggleVisibility(benefit.id)}
               className="rounded border-slate-600 bg-slate-700 text-blue-500 focus:ring-blue-500"
             />
             <span className="text-sm">Show in list (uncheck to hide)</span>
@@ -276,10 +268,7 @@ if (!isOpen || !benefit) return null;
 
         <div className="flex gap-2 justify-end">
           <button onClick={onClose} className="btn-secondary">
-            Cancel
-          </button>
-          <button onClick={handleSave} className="btn-primary">
-            Save
+            Close
           </button>
         </div>
       </div>

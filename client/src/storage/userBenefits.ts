@@ -145,7 +145,7 @@ export function clearAllUserData(): void {
  * Replaces existing usage data for the specified benefits
  */
 export function importBenefitUsage(
-  imports: Map<string, { currentUsed: number; periods?: Record<string, number> }>,
+  imports: Map<string, { currentUsed: number; periods?: Record<string, { usedAmount: number; transactions?: { date: string; description: string; amount: number }[] }>; transactions?: { date: string; description: string; amount: number }[] }>,
   benefitDefinitions: BenefitDefinition[]
 ): void {
   const data = getUserBenefitsData();
@@ -170,18 +170,24 @@ export function importBenefitUsage(
     if (usage.periods && benefitDef.periods) {
       existing.periods = existing.periods ?? {};
 
-      for (const [periodId, amount] of Object.entries(usage.periods)) {
+      for (const [periodId, periodData] of Object.entries(usage.periods)) {
         // Calculate status based on period's max amount
         const periodCount = benefitDef.periods.length;
         const maxPerPeriod = benefitDef.creditAmount / periodCount;
         const periodStatus: BenefitPeriodUserState['status'] =
-          amount >= maxPerPeriod ? 'completed' : 'pending';
+          periodData.usedAmount >= maxPerPeriod ? 'completed' : 'pending';
 
         existing.periods[periodId] = {
-          usedAmount: amount,
+          usedAmount: periodData.usedAmount,
           status: periodStatus,
+          transactions: periodData.transactions,
         };
       }
+    }
+
+    // Handle non-period benefit transactions
+    if (usage.transactions && (!benefitDef.periods || benefitDef.periods.length === 0)) {
+      existing.transactions = usage.transactions;
     }
 
     // Recalculate overall status

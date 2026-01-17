@@ -88,25 +88,37 @@ function App() {
     }
   }, [selectedCardId, loadAllBenefitsForCard]);
 
-  const handleUpdateBenefit = useCallback(async (
-    id: string,
-    data: { currentUsed?: number; ignored?: boolean; activationAcknowledged?: boolean; periods?: Record<string, number> }
-  ) => {
+  const handleToggleActivation = useCallback(async (id: string) => {
     try {
       const definition = definitions.find(d => d.id === id);
       if (!definition) {
         throw new Error('Benefit not found');
       }
 
-      const { activationAcknowledged, ...updateData } = data;
-      let updated = benefitsService.updateBenefit(id, definition, updateData);
-
-      if (activationAcknowledged !== undefined && activationAcknowledged !== updated.activationAcknowledged) {
-        updated = benefitsService.toggleActivation(id, definition);
-      }
+      const updated = benefitsService.toggleActivation(id, definition);
 
       setAllBenefits(prev => prev.map(b => b.id === id ? updated : b));
-      if (updated.ignored) {
+      setBenefits(prev => prev.map(b => b.id === id ? updated : b));
+      setUpdateError(null);
+    } catch (err) {
+      setUpdateError(`Failed to toggle activation: ${(err as Error).message}`);
+    }
+  }, [definitions]);
+
+  const handleToggleVisibility = useCallback(async (id: string) => {
+    try {
+      const definition = definitions.find(d => d.id === id);
+      if (!definition) {
+        throw new Error('Benefit not found');
+      }
+
+      const currentBenefit = allBenefits.find(b => b.id === id);
+      const newIgnored = !currentBenefit?.ignored;
+
+      const updated = benefitsService.updateBenefit(id, definition, { ignored: newIgnored });
+
+      setAllBenefits(prev => prev.map(b => b.id === id ? updated : b));
+      if (newIgnored) {
         setBenefits(prev => prev.filter(b => b.id !== id));
       } else {
         setBenefits(prev => {
@@ -117,40 +129,22 @@ function App() {
           return [...prev, updated];
         });
       }
-      const statsData = await benefitsService.getStats();
-      setStats(statsData);
-      setUpdateError(null);
-    } catch (err) {
-      setUpdateError(`Failed to update benefit: ${(err as Error).message}`);
-    }
-  }, [definitions]);
 
-  const handleToggleIgnored = useCallback(async (id: string, data: { ignored: boolean }) => {
-    try {
-      const definition = definitions.find(d => d.id === id);
-      if (!definition) {
-        throw new Error('Benefit not found');
-      }
-
-      const updated = benefitsService.updateBenefit(id, definition, data);
-      setAllBenefits(prev => prev.map(b => b.id === id ? updated : b));
-      
-      // Fetch non-ignored benefits and stats
-      const allBenefitsData = await benefitsService.getBenefits(undefined, true);
-      const benefitsData = allBenefitsData.filter(b => !b.ignored);
       const statsData = await benefitsService.getStats();
-      
-      setBenefits(benefitsData);
       setStats(statsData);
       setUpdateError(null);
     } catch (err) {
       setUpdateError(`Failed to toggle visibility: ${(err as Error).message}`);
     }
-  }, [definitions]);
+  }, [definitions, allBenefits]);
 
   const handleImport = useCallback(async (
     cardId: string,
-    aggregated: Map<string, { currentUsed: number; periods?: Record<string, number> }>
+    aggregated: Map<string, {
+      currentUsed: number;
+      periods?: Record<string, { usedAmount: number; transactions?: { date: string; description: string; amount: number }[] }>;
+      transactions?: { date: string; description: string; amount: number }[];
+    }>
   ) => {
     try {
       // Get definitions for this card
@@ -266,8 +260,8 @@ function App() {
                 allBenefits={selectedCardAllBenefits}
                 definitions={definitions.filter(d => d.cardId === selectedCardId)}
                 onBack={() => setSelectedCardId(null)}
-                onUpdateBenefit={handleUpdateBenefit}
-                onToggleIgnored={handleToggleIgnored}
+                onToggleActivation={handleToggleActivation}
+                onToggleVisibility={handleToggleVisibility}
                 onImport={handleImport}
               />
 
@@ -278,8 +272,8 @@ function App() {
               allBenefits={allBenefits}
               definitions={definitions}
               stats={stats}
-              onUpdateBenefit={handleUpdateBenefit}
-              onToggleIgnored={handleToggleIgnored}
+              onToggleActivation={handleToggleActivation}
+              onToggleVisibility={handleToggleVisibility}
               onImport={handleImport}
             />
           )}

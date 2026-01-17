@@ -10,6 +10,12 @@ export interface CreditCard {
 
 export type BenefitStatus = 'pending' | 'completed' | 'missed';
 
+export interface StoredTransaction {
+  date: string;
+  description: string;
+  amount: number;
+}
+
 export interface BenefitPeriodDefinition {
   id: string;
   startDate: string;
@@ -19,6 +25,7 @@ export interface BenefitPeriodDefinition {
 export interface BenefitPeriodUserState {
   usedAmount: number;
   status: BenefitStatus;
+  transactions?: StoredTransaction[];
 }
 
 export interface BenefitPeriod extends BenefitPeriodDefinition, BenefitPeriodUserState {}
@@ -44,6 +51,7 @@ export interface BenefitUserState {
   status: BenefitStatus;
   ignored: boolean;
   periods?: Record<string, BenefitPeriodUserState>;
+  transactions?: StoredTransaction[];
 }
 
 export type Benefit = Omit<BenefitDefinition, 'periods'> &
@@ -62,10 +70,8 @@ export interface UserBenefitsData {
 }
 
 export interface UpdateBenefitRequest {
-  currentUsed?: number;
   status?: BenefitStatus;
   ignored?: boolean;
-  periods?: Record<string, number>;
 }
 
 export interface Stats {

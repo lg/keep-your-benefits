@@ -2,9 +2,9 @@ import { useMemo, useState, useCallback } from 'react';
 import type { Benefit, Stats, CreditCard, BenefitDefinition } from '../types';
 import { BenefitCard } from '../components/BenefitCard';
 import { CardHeader } from '../components/CardHeader';
-import { EditModal } from '../components/EditModal';
+import { DetailsModal } from '../components/DetailsModal';
 import { ImportModal } from '../components/ImportModal';
-import { useEditModal } from '../hooks/useEditModal';
+import { useDetailsModal } from '../hooks/useDetailsModal';
 import { calculateStats } from '@shared/utils';
 
 interface DashboardProps {
@@ -13,22 +13,30 @@ interface DashboardProps {
   allBenefits: Benefit[];
   definitions: BenefitDefinition[];
   stats: Stats | null;
-  onUpdateBenefit: (id: string, data: { currentUsed?: number; ignored?: boolean; activationAcknowledged?: boolean; periods?: Record<string, number> }) => void;
-  onToggleIgnored: (id: string, data: { ignored: boolean }) => void;
-  onImport: (cardId: string, aggregated: Map<string, { currentUsed: number; periods?: Record<string, number> }>) => void;
+  onToggleActivation: (id: string) => void;
+  onToggleVisibility: (id: string) => void;
+  onImport: (cardId: string, aggregated: Map<string, {
+    currentUsed: number;
+    periods?: Record<string, { usedAmount: number; transactions?: { date: string; description: string; amount: number }[] }>;
+    transactions?: { date: string; description: string; amount: number }[];
+  }>) => void;
 }
 
-export function Dashboard({ 
-  benefits, 
-  cards, 
+export function Dashboard({
+  benefits,
+  cards,
   allBenefits,
   definitions,
-  stats, 
-  onUpdateBenefit,
-  onToggleIgnored,
+  stats,
+  onToggleActivation,
+  onToggleVisibility,
   onImport
 }: DashboardProps) {
-  const { editingBenefit, isModalOpen, initialPeriodId, handleEdit, handleEditPeriod, handleClose } = useEditModal();
+  const { viewingBenefitId, isModalOpen, initialPeriodId, handleViewDetails, handleViewPeriod, handleClose } = useDetailsModal();
+
+  const viewingBenefit = viewingBenefitId
+    ? allBenefits.find(b => b.id === viewingBenefitId) ?? null
+    : null;
   
   // Import modal state
   const [importCardId, setImportCardId] = useState<string | null>(null);
@@ -46,7 +54,11 @@ export function Dashboard({
     setImportCardId(null);
   }, []);
 
-  const handleImportConfirm = useCallback((aggregated: Map<string, { currentUsed: number; periods?: Record<string, number> }>) => {
+  const handleImportConfirm = useCallback((aggregated: Map<string, {
+    currentUsed: number;
+    periods?: Record<string, { usedAmount: number; transactions?: { date: string; description: string; amount: number }[] }>;
+    transactions?: { date: string; description: string; amount: number }[];
+  }>) => {
     if (importCardId) {
       onImport(importCardId, aggregated);
     }
@@ -96,7 +108,7 @@ export function Dashboard({
               card={card} 
               stats={calculateStats(cardBenefits)}
               allBenefits={cardAllBenefits}
-              onUpdateBenefit={onToggleIgnored}
+              onUpdateBenefit={onToggleVisibility}
               onImportClick={() => handleImportClick(card.id)}
             />
             <div className="grid gap-4 md:grid-cols-2">
@@ -104,8 +116,8 @@ export function Dashboard({
                 <BenefitCard
                   key={benefit.id}
                   benefit={benefit}
-                  onEdit={handleEdit}
-                  onSegmentEdit={handleEditPeriod}
+                  onViewDetails={handleViewDetails}
+                  onViewPeriod={handleViewPeriod}
                 />
               ))}
             </div>
@@ -113,11 +125,12 @@ export function Dashboard({
         )
       ))}
 
-      <EditModal
-        benefit={editingBenefit}
+      <DetailsModal
+        benefit={viewingBenefit}
         isOpen={isModalOpen}
         onClose={handleClose}
-        onSave={onUpdateBenefit}
+        onToggleActivation={onToggleActivation}
+        onToggleVisibility={onToggleVisibility}
         initialPeriodId={initialPeriodId}
       />
 
