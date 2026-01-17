@@ -8,8 +8,8 @@ import {
   type ChangeEvent,
 } from 'react';
 import type { BenefitDefinition } from '@shared/types';
-import type { ImportResult, CardType, ParsedTransaction, MatchedCredit } from '../types/import';
-import { parseAmexCredits } from '../services/amexParser';
+import type { ImportResult, CardType, ParsedTransaction } from '../types/import';
+import { parseAmexCsv, extractAmexCredits } from '../services/amexParser';
 import { matchCredits, aggregateCredits } from '../services/benefitMatcher';
 
 interface ImportModalProps {
@@ -32,13 +32,14 @@ interface ImportModalProps {
 
 type ImportStep = 'upload' | 'preview';
 
-// Unified row type for display
+type ImportRowType = 'matched' | 'credit' | 'transaction';
+
 interface DisplayRow {
   date: Date;
   description: string;
   benefitName: string | null;
   amount: number;
-  isMatched: boolean;
+  rowType: ImportRowType;
 }
 
 export function ImportModal({
@@ -53,11 +54,13 @@ export function ImportModal({
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
+  const [allTransactions, setAllTransactions] = useState<ParsedTransaction[]>([]);
 
   const resetState = useCallback(() => {
     setStep('upload');
     setError(null);
     setImportResult(null);
+    setAllTransactions([]);
     setIsDragging(false);
   }, []);
 
@@ -79,9 +82,11 @@ export function ImportModal({
         const content = await file.text();
 
         // Parse based on card type
-        let credits;
+        let allTransactions: ParsedTransaction[] = [];
+        let credits: ParsedTransaction[] = [];
         if (cardId.startsWith('amex')) {
-          credits = parseAmexCredits(content);
+          allTransactions = parseAmexCsv(content);
+          credits = extractAmexCredits(allTransactions);
         } else {
           // TODO: Add Chase parser
           setError('Chase import is not yet supported');
@@ -103,6 +108,7 @@ export function ImportModal({
         );
 
         setImportResult(result);
+        setAllTransactions(allTransactions);
         setStep('preview');
       } catch (err) {
         setError(`Failed to parse CSV: ${(err as Error).message}`);
@@ -166,35 +172,62 @@ export function ImportModal({
     }
   };
 
-  // Combine matched and unmatched credits into a single display list
+  // Combine all transactions into a single display list with matching info
   const displayRows = useMemo((): DisplayRow[] => {
     if (!importResult) return [];
 
-    const matchedRows: DisplayRow[] = importResult.matchedCredits.map(
-      (credit: MatchedCredit) => ({
+    // Build a set of credit transaction keys for quick lookup
+    const creditKeys = new Set<string>();
+    for (const credit of importResult.matchedCredits) {
+      const key = `${credit.transaction.date.getTime()}-${credit.transaction.description}-${Math.abs(credit.transaction.amount)}`;
+      creditKeys.add(key);
+    }
+    for (const credit of importResult.unmatchedCredits) {
+      const key = `${credit.date.getTime()}-${credit.description}-${Math.abs(credit.amount)}`;
+      creditKeys.add(key);
+    }
+
+    const rows: DisplayRow[] = [];
+
+    // Add matched credits
+    for (const credit of importResult.matchedCredits) {
+      rows.push({
         date: credit.transaction.date,
-        description: credit.transaction.description,
+        description: credit.transaction.extendedDetails ?? credit.transaction.description,
         benefitName: credit.benefitName,
         amount: credit.creditAmount,
-        isMatched: true,
-      })
-    );
+        rowType: 'matched',
+      });
+    }
 
-    const unmatchedRows: DisplayRow[] = importResult.unmatchedCredits.map(
-      (credit: ParsedTransaction) => ({
+    // Add unmatched credits
+    for (const credit of importResult.unmatchedCredits) {
+      rows.push({
         date: credit.date,
-        description: credit.description,
+        description: credit.extendedDetails ?? credit.description,
         benefitName: null,
         amount: Math.abs(credit.amount),
-        isMatched: false,
-      })
-    );
+        rowType: 'credit',
+      });
+    }
 
-    // Combine and sort by date (newest first)
-    return [...matchedRows, ...unmatchedRows].sort(
-      (a, b) => b.date.getTime() - a.date.getTime()
-    );
-  }, [importResult]);
+    // Add non-credit transactions (purchases, payments, etc.)
+    for (const transaction of allTransactions) {
+      const key = `${transaction.date.getTime()}-${transaction.description}-${Math.abs(transaction.amount)}`;
+      if (!creditKeys.has(key)) {
+        rows.push({
+          date: transaction.date,
+          description: transaction.extendedDetails ?? transaction.description,
+          benefitName: null,
+          amount: Math.abs(transaction.amount),
+          rowType: 'transaction',
+        });
+      }
+    }
+
+    // Sort by date (newest first)
+    return rows.sort((a, b) => b.date.getTime() - a.date.getTime());
+  }, [importResult, allTransactions]);
 
   if (!isOpen) return null;
 
@@ -227,7 +260,7 @@ export function ImportModal({
       tabIndex={0}
     >
       <div
-        className="modal-content max-w-2xl"
+        className="modal-content w-[90vw] max-w-[1200px]"
         role="dialog"
         aria-modal="true"
       >
@@ -316,36 +349,36 @@ export function ImportModal({
               )}
             </p>
 
-            <div className="max-h-64 overflow-y-auto rounded-lg border border-slate-700">
+            <div className="max-h-[420px] overflow-x-auto overflow-y-auto rounded-lg border border-slate-700">
               <table className="w-full text-sm">
                 <thead className="bg-slate-800 sticky top-0">
-                  <tr>
-                    <th className="p-2 text-left">Date</th>
-                    <th className="p-2 text-left">Description</th>
-                    <th className="p-2 text-left">Benefit</th>
-                    <th className="p-2 text-right">Amount</th>
-                  </tr>
+                    <tr>
+                      <th className="p-2 text-left whitespace-nowrap">Date</th>
+                      <th className="p-2 text-left whitespace-nowrap">Description</th>
+                      <th className="p-2 text-left whitespace-nowrap">Benefit</th>
+                      <th className="p-2 text-right whitespace-nowrap">Amount</th>
+                    </tr>
                 </thead>
                 <tbody>
                   {displayRows.map((row) => (
                     <tr
                       key={`${row.date.getTime()}-${row.description}`}
                       className={`border-t border-slate-700 ${
-                        row.isMatched
+                        row.rowType === 'matched'
                           ? 'hover:bg-slate-800/50'
                           : 'text-slate-500'
                       }`}
                     >
-                      <td className={`p-2 ${row.isMatched ? 'text-slate-400' : ''}`}>
+                      <td className={`p-2 whitespace-nowrap ${row.rowType === 'matched' ? 'text-slate-400' : ''}`}>
                         {formatDate(row.date)}
                       </td>
-                      <td className={`p-2 ${row.isMatched ? 'text-slate-300' : ''}`}>
+                      <td className={`p-2 whitespace-nowrap ${row.rowType === 'matched' ? 'text-slate-300' : ''}`}>
                         {row.description}
                       </td>
-                      <td className={`p-2 ${row.isMatched ? 'text-emerald-400' : ''}`}>
+                      <td className={`p-2 whitespace-nowrap ${row.rowType === 'matched' ? 'text-emerald-400' : ''}`}>
                         {row.benefitName ?? '—'}
                       </td>
-                      <td className={`p-2 text-right ${row.isMatched ? 'text-emerald-400' : ''}`}>
+                      <td className={`p-2 text-right whitespace-nowrap ${row.rowType === 'matched' ? 'text-emerald-400' : ''}`}>
                         {formatAmount(row.amount)}
                       </td>
                     </tr>
