@@ -2,12 +2,13 @@ import { Tooltip } from './Tooltip';
 
 interface ProgressSegment {
   id: string;
-  status: 'pending' | 'completed' | 'missed';
+  status: 'pending' | 'completed' | 'missed' | 'future';
   label?: string;
   timeProgress?: number;
   startDate?: string;
   endDate?: string;
   daysLeft?: number;
+  isCurrent?: boolean;
 }
 
 interface ProgressBarProps {
@@ -22,6 +23,8 @@ export function ProgressBar({ segments, segmentsCount }: ProgressBarProps) {
         return 'progress-segment completed';
       case 'missed':
         return 'progress-segment missed';
+      case 'future':
+        return 'progress-segment future';
       default:
         return 'progress-segment pending';
     }
@@ -39,7 +42,7 @@ export function ProgressBar({ segments, segmentsCount }: ProgressBarProps) {
             <Tooltip content={segment?.label || `Segment ${index + 1}`}>
               <div className="w-full h-full" />
             </Tooltip>
-            {segment && segment.timeProgress !== undefined && segment.status === 'pending' && segment.daysLeft !== undefined && (
+            {segment && segment.isCurrent && segment.timeProgress !== undefined && segment.daysLeft !== undefined && (
               <div
                 className="absolute -top-1 -bottom-1 w-1 bg-white border border-slate-800 rounded-sm z-10"
                 style={{ left: `${segment.timeProgress}%` }}

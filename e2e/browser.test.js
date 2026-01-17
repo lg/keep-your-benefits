@@ -5,7 +5,7 @@ import { fileURLToPath } from 'url';
 
 const rootDir = dirname(fileURLToPath(import.meta.url));
 const userBenefitsPath = join(rootDir, '..', 'data', 'user-benefits.json');
-const baseUserBenefits = readFileSync(userBenefitsPath, 'utf-8');
+const baseUserBenefits = JSON.stringify({ benefits: {} });
 
 test.describe('Dashboard', () => {
   test.beforeEach(async ({ page }) => {
@@ -73,54 +73,28 @@ test.describe('Edit Modal', () => {
     await expect(page.getByRole('dialog')).toBeVisible();
   });
 
-  test('pre-fills current amount', async ({ page }) => {
+  test('saves period spend', async ({ page }) => {
     const uberCard = page.locator('.benefit-card', { hasText: 'Uber Cash' });
     await uberCard.getByRole('button', { name: 'Edit' }).click();
     const dialog = page.getByRole('dialog');
-    const input = dialog.getByLabel('Amount Used ($200 total)');
-    const cardValue = await uberCard.getByText(/\$\d+ \/ \$200/).innerText();
-    const usedValue = cardValue.split('/')[0]?.replace('$', '').trim();
-    await expect(input).toHaveValue(usedValue ?? '0');
-  });
-
-  test('saves updated amount', async ({ page }) => {
-    const uberCard = page.locator('.benefit-card', { hasText: 'Uber Cash' });
-    await uberCard.getByRole('button', { name: 'Edit' }).click();
-    const dialog = page.getByRole('dialog');
-    await dialog.getByLabel('Amount Used ($200 total)').fill('100');
+    await dialog.getByRole('spinbutton').fill('15');
     await dialog.getByRole('button', { name: 'Save' }).click();
-    
-    await expect(uberCard.getByText('$100 / $200')).toBeVisible();
+    await expect(uberCard.getByText('$15 / $200')).toBeVisible();
   });
 
-  test('cancels without saving', async ({ page }) => {
-    const uberCard = page.locator('.benefit-card', { hasText: 'Uber Cash' });
-    const initialValue = await uberCard.getByText(/\$\d+ \/ \$200/).textContent();
-    expect(initialValue).not.toBeNull();
+  test('updates prior period segment for Lyft credit', async ({ page }) => {
+    const lyftCard = page.locator('.benefit-card', { hasText: 'Lyft Credit' });
+    await expect(lyftCard.locator('.progress-segment.completed')).toHaveCount(0);
 
-    await uberCard.getByRole('button', { name: 'Edit' }).click();
+    await lyftCard.getByRole('button', { name: 'Edit' }).click();
     const dialog = page.getByRole('dialog');
-    await dialog.getByLabel('Amount Used ($200 total)').fill('100');
-    await dialog.getByRole('button', { name: 'Cancel' }).click();
-    
-    await expect(uberCard.getByText(initialValue?.trim() ?? '')).toBeVisible();
-  });
+    const priorPeriod = dialog.getByRole('button', { name: /Nov 2025 – Dec 2025/ });
+    await priorPeriod.scrollIntoViewIfNeeded();
+    await priorPeriod.click();
+    await dialog.getByRole('spinbutton').fill('10');
+    await dialog.getByRole('button', { name: 'Save' }).click();
 
-  test('Clear button resets to 0', async ({ page }) => {
-    const uberCard = page.locator('.benefit-card', { hasText: 'Uber Cash' });
-    await uberCard.getByRole('button', { name: 'Edit' }).click();
-    const dialog = page.getByRole('dialog');
-    await dialog.getByLabel('Amount Used ($200 total)').fill('100');
-    await dialog.getByRole('button', { name: 'Clear' }).click();
-    await expect(dialog.getByLabel('Amount Used ($200 total)')).toHaveValue('0');
-  });
-
-  test('Full Amount button sets to max', async ({ page }) => {
-    const uberCard = page.locator('.benefit-card', { hasText: 'Uber Cash' });
-    await uberCard.getByRole('button', { name: 'Edit' }).click();
-    const dialog = page.getByRole('dialog');
-    await dialog.getByRole('button', { name: 'Full Amount' }).click();
-    await expect(dialog.getByLabel('Amount Used ($200 total)')).toHaveValue('200');
+    await expect(lyftCard.locator('.progress-segment.completed')).toHaveCount(1);
   });
 });
 

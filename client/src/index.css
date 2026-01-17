@@ -22,6 +22,10 @@ body {
   @apply bg-red-500;
 }
 
+.progress-segment.future {
+  @apply bg-slate-700;
+}
+
 .benefit-card {
   @apply bg-slate-800 border border-slate-700 rounded-lg p-4 transition-all duration-200;
 }
@@ -60,4 +64,13 @@ body {
 
 .input-field {
   @apply bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 w-full text-slate-100 focus:outline-none focus:border-blue-500;
+}
+
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
 }

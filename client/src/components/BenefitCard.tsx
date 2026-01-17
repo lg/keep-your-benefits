@@ -36,51 +36,69 @@ export function BenefitCard({ benefit, onEdit }: BenefitCardProps) {
     return 1;
   };
 
-  const getCurrentPeriodIndex = (): number => {
-    if (!benefit.periods || benefit.periods.length === 0) {
-      return -1;
-    }
-    const now = new Date();
-    return benefit.periods.findIndex(p => {
-      const start = new Date(p.startDate);
-      const end = new Date(p.endDate);
-      return now >= start && now <= end;
-    });
-  };
-
   interface ProgressSegment {
     id: string;
-    status: 'pending' | 'completed' | 'missed';
+    status: 'pending' | 'completed' | 'missed' | 'future';
     label?: string;
     timeProgress?: number;
     startDate?: string;
     endDate?: string;
     daysLeft?: number;
+    isCurrent?: boolean;
   }
 
   const getSegments = (): ProgressSegment[] => {
     if (benefit.periods && benefit.periods.length > 0) {
-      const currentIndex = getCurrentPeriodIndex();
-      return benefit.periods.map((p, i) => ({
-        id: p.id,
-        status: p.status as 'pending' | 'completed' | 'missed',
-        label: `${formatDate(p.startDate)} - ${formatDate(p.endDate)}`,
-        timeProgress: i === currentIndex && p.status === 'pending' ? getTimeProgress(p.startDate, p.endDate) : undefined,
-        startDate: p.startDate,
-        endDate: p.endDate,
-        daysLeft: i === currentIndex ? getDaysUntilExpiry(p.endDate) : undefined
-      }));
+      const segmentValue = benefit.creditAmount / benefit.periods.length;
+      const now = new Date();
+
+      return benefit.periods.map(p => {
+        const start = new Date(p.startDate);
+        const end = new Date(p.endDate);
+        const isFuture = now < start;
+        const isPast = now > end;
+        const isCurrent = !isFuture && !isPast;
+        const isComplete = p.usedAmount >= segmentValue;
+
+        let status: ProgressSegment['status'] = 'pending';
+        if (isFuture) {
+          status = 'future';
+        } else if (isComplete) {
+          status = 'completed';
+        } else if (isPast) {
+          status = 'missed';
+        } else {
+          status = 'pending';
+        }
+
+        return {
+          id: p.id,
+          status,
+          label: `${formatDate(p.startDate)} - ${formatDate(p.endDate)}`,
+          timeProgress: isCurrent ? getTimeProgress(p.startDate, p.endDate) : undefined,
+          startDate: p.startDate,
+          endDate: p.endDate,
+          daysLeft: isCurrent ? getDaysUntilExpiry(p.endDate) : undefined,
+          isCurrent
+        };
+      });
     }
+
+    const isComplete = benefit.currentUsed >= benefit.creditAmount;
+    const isPast = daysUntilExpiry <= 0;
+    const status: ProgressSegment['status'] = isComplete ? 'completed' : isPast ? 'missed' : 'pending';
+    const isCurrent = !isPast;
 
     return [
       {
         id: 'overall',
-        status: benefit.status,
+        status,
         label: `${formatDate(benefit.startDate)} - ${formatDate(benefit.endDate)}`,
-        timeProgress: benefit.status === 'pending' ? overallTimeProgress : undefined,
+        timeProgress: isCurrent ? overallTimeProgress : undefined,
         startDate: benefit.startDate,
         endDate: benefit.endDate,
-        daysLeft: benefit.status === 'pending' ? daysUntilExpiry : undefined
+        daysLeft: isCurrent ? daysUntilExpiry : undefined,
+        isCurrent
       }
     ];
   };

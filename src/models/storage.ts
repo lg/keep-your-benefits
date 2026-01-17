@@ -148,7 +148,7 @@ export function updateBenefit(id: string, updates: Partial<BenefitUserState>): B
   const nextState: BenefitUserState = {
     ...existingState,
     ...updates,
-    periods: existingState.periods
+    periods: updates.periods ?? existingState.periods
   };
 
   userData.benefits[id] = nextState;

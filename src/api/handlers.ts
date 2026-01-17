@@ -1,7 +1,14 @@
 import { Context, Next } from 'hono';
-import { getCards, getBenefits, getBenefitById, updateBenefit, getUpcomingExpirations } from '../models/storage';
-import type { UpdateBenefitRequest } from '../models/types';
+import {
+  getCards,
+  getBenefits,
+  getBenefitById,
+  updateBenefit,
+  getUpcomingExpirations
+} from '../models/storage';
+import type { BenefitUserState, UpdateBenefitRequest } from '../models/types';
 import { updateBenefitUsage, toggleActivation, getStats } from '../services/benefits';
+import { calculateBenefitStatus, calculatePeriodStatus } from '../utils/dates';
 
 type JsonStatus = 200 | 400 | 404 | 500;
 
@@ -53,6 +60,39 @@ export async function updateBenefitHandler(c: Context) {
       return jsonResponse(c, { success: false, error: 'Benefit not found' }, 404);
     }
     
+    const periodUpdates = updates.periods;
+
+    if (periodUpdates && Object.keys(periodUpdates).length > 0) {
+      const benefitPeriods = benefit.periods ?? [];
+      const periodStates = benefitPeriods.reduce<Record<string, { usedAmount: number; status: 'pending' | 'completed' | 'missed' }>>(
+        (acc, period) => {
+          const usedAmount = periodUpdates[period.id] ?? period.usedAmount;
+          const segmentValue = benefit.creditAmount / benefitPeriods.length;
+          acc[period.id] = {
+            usedAmount,
+            status: calculatePeriodStatus({
+              usedAmount,
+              creditAmount: segmentValue,
+              endDate: period.endDate
+            })
+          };
+          return acc;
+        },
+        {}
+      );
+
+      const totalUsed = Object.values(periodStates).reduce((sum, period) => sum + period.usedAmount, 0);
+      const updated = updateBenefit(id, {
+        periods: periodStates,
+        currentUsed: totalUsed,
+        notes: updates.notes ?? benefit.notes,
+        ignored: updates.ignored ?? benefit.ignored,
+        status: calculateBenefitStatus({ ...benefit, currentUsed: totalUsed })
+      });
+
+      return jsonResponse(c, { success: true, data: updated });
+    }
+
     if (updates.currentUsed !== undefined) {
       const updated = updateBenefitUsage(
         id,
@@ -63,7 +103,7 @@ export async function updateBenefitHandler(c: Context) {
       return jsonResponse(c, { success: true, data: updated });
     }
 
-    const filteredUpdates: UpdateBenefitRequest = {};
+    const filteredUpdates: Partial<BenefitUserState> = {};
 
     if (updates.notes !== undefined) {
       filteredUpdates.notes = updates.notes;

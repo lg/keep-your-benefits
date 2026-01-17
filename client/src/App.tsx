@@ -51,7 +51,10 @@ function App() {
     }
   }, [selectedCardId, loadAllBenefitsForCard]);
 
-  const handleUpdateBenefit = async (id: string, data: { currentUsed: number; notes: string; ignored?: boolean; activationAcknowledged?: boolean }) => {
+  const handleUpdateBenefit = async (
+    id: string,
+    data: { notes: string; ignored?: boolean; activationAcknowledged?: boolean; periods?: Record<string, number> }
+  ) => {
     try {
       const { activationAcknowledged, ...updateData } = data;
       let updated = await api.updateBenefit(id, updateData);

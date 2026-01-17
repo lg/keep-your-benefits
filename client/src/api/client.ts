@@ -1,4 +1,4 @@
-import { Benefit, CreditCard, Stats } from '../types';
+import { Benefit, CreditCard, Stats, UpdateBenefitRequest } from '../types';
 
 const API_BASE = '/api';
 
@@ -36,7 +36,7 @@ export const api = {
   
   getBenefit: (id: string) => fetchApi<Benefit>(`/benefits/${id}`),
   
-  updateBenefit: (id: string, data: Partial<Benefit>) => 
+  updateBenefit: (id: string, data: UpdateBenefitRequest) => 
     fetchApi<Benefit>(`/benefits/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(data),

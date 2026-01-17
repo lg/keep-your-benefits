@@ -64,6 +64,7 @@ export interface UpdateBenefitRequest {
   notes?: string;
   status?: BenefitStatus;
   ignored?: boolean;
+  periods?: Record<string, number>;
 }
 
 export interface UpdatePeriodRequest {

@@ -10,7 +10,7 @@ interface DashboardProps {
   allBenefits: Benefit[];
   stats: Stats | null;
   onEditBenefit: (benefit: Benefit) => void;
-  onUpdateBenefit: (id: string, data: { currentUsed: number; notes: string; ignored?: boolean; activationAcknowledged?: boolean }) => void;
+  onUpdateBenefit: (id: string, data: { notes: string; ignored?: boolean; activationAcknowledged?: boolean; periods?: Record<string, number> }) => void;
   onToggleIgnored: (id: string, data: { ignored: boolean }) => void;
 }
 
@@ -30,7 +30,10 @@ export function Dashboard({
     setIsModalOpen(true);
   };
 
-  const handleSave = (id: string, data: { currentUsed: number; notes: string; ignored?: boolean; activationAcknowledged?: boolean }) => {
+  const handleSave = (
+    id: string,
+    data: { notes: string; ignored?: boolean; activationAcknowledged?: boolean; periods?: Record<string, number> }
+  ) => {
     onUpdateBenefit(id, data);
   };
 
