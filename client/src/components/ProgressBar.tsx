@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import type { ProgressSegment } from '../types';
 import { Tooltip } from './Tooltip';
 
@@ -7,20 +8,20 @@ interface ProgressBarProps {
   onSegmentClick?: (segment: ProgressSegment) => void;
 }
 
-export function ProgressBar({ segments, segmentsCount, onSegmentClick }: ProgressBarProps) {
-  const segmentClass = (status: ProgressSegment['status']) => {
-    switch (status) {
-      case 'completed':
-        return 'progress-segment completed';
-      case 'missed':
-        return 'progress-segment missed';
-      case 'future':
-        return 'progress-segment future';
-      default:
-        return 'progress-segment pending';
-    }
-  };
+const segmentClass = (status: ProgressSegment['status']) => {
+  switch (status) {
+    case 'completed':
+      return 'progress-segment completed';
+    case 'missed':
+      return 'progress-segment missed';
+    case 'future':
+      return 'progress-segment future';
+    default:
+      return 'progress-segment pending';
+  }
+};
 
+function ProgressBarComponent({ segments, segmentsCount, onSegmentClick }: ProgressBarProps) {
   return (
     <div className="flex gap-1">
       {Array.from({ length: segmentsCount }).map((_, index) => {
@@ -46,7 +47,7 @@ export function ProgressBar({ segments, segmentsCount, onSegmentClick }: Progres
             <Tooltip content={segment?.label || `Segment ${index + 1}`}>
               <div className="w-full h-full" />
             </Tooltip>
-            {segment && segment.isCurrent && segment.timeProgress !== undefined && segment.daysLeft !== undefined && (
+            {segment && segment.isCurrent && segment.timeProgress !== undefined && segment.daysLeft !== undefined ? (
               <div
                 className="absolute -top-1 -bottom-1 w-1 bg-white border border-slate-800 rounded-sm z-10"
                 style={{ left: `${segment.timeProgress}%` }}
@@ -62,10 +63,12 @@ export function ProgressBar({ segments, segmentsCount, onSegmentClick }: Progres
                   />
                 </div>
               </div>
-            )}
+            ) : null}
           </div>
         );
       })}
     </div>
   );
 }
+
+export const ProgressBar = memo(ProgressBarComponent);

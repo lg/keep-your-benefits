@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import type { Benefit, Stats, CreditCard } from '../types';
 import { BenefitCard } from '../components/BenefitCard';
 import { CardHeader } from '../components/CardHeader';
@@ -24,11 +25,14 @@ export function Dashboard({
 }: DashboardProps) {
   const { editingBenefit, isModalOpen, initialPeriodId, handleEdit, handleEditPeriod, handleClose } = useEditModal();
 
-  const benefitsByCard = cards.map(card => ({
-    card,
-    benefits: benefits.filter(b => b.cardId === card.id),
-    allBenefits: allBenefits.filter(b => b.cardId === card.id)
-  }));
+  const benefitsByCard = useMemo(() => 
+    cards.map(card => ({
+      card,
+      benefits: benefits.filter(b => b.cardId === card.id),
+      allBenefits: allBenefits.filter(b => b.cardId === card.id)
+    })),
+    [cards, benefits, allBenefits]
+  );
 
   return (
     <div>

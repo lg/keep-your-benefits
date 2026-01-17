@@ -1,3 +1,4 @@
+import { useMemo, useCallback, memo } from 'react';
 import { Benefit, ProgressSegment } from '../types';
 import { ProgressBar } from './ProgressBar';
 import { formatDate, getDaysUntilExpiry, getTimeProgress } from '../utils/dateUtils';
@@ -26,18 +27,16 @@ interface BenefitCardProps {
   onSegmentEdit?: (benefit: Benefit, periodId: string) => void;
 }
 
-export function BenefitCard({ benefit, onEdit, onSegmentEdit }: BenefitCardProps) {
+function BenefitCardComponent({ benefit, onEdit, onSegmentEdit }: BenefitCardProps) {
   const daysUntilExpiry = getDaysUntilExpiry(benefit.endDate);
   const overallTimeProgress = getTimeProgress(benefit.startDate, benefit.endDate);
 
-  const segmentsCount = () => {
-    if (benefit.periods && benefit.periods.length > 0) {
-      return benefit.periods.length;
-    }
-    return 1;
-  };
+  const segmentsCount = useMemo(() => 
+    benefit.periods && benefit.periods.length > 0 ? benefit.periods.length : 1,
+    [benefit.periods]
+  );
 
-  const getSegments = (): ProgressSegment[] => {
+  const segments = useMemo((): ProgressSegment[] => {
     if (benefit.periods && benefit.periods.length > 0) {
       const segmentValue = benefit.creditAmount / benefit.periods.length;
       const now = new Date();
@@ -91,15 +90,22 @@ export function BenefitCard({ benefit, onEdit, onSegmentEdit }: BenefitCardProps
         isCurrent
       }
     ];
-  };
+  }, [benefit, daysUntilExpiry, overallTimeProgress]);
 
-  const activationClass = () => {
-    if (!benefit.activationRequired) return 'border-l-emerald-500';
-    return benefit.activationAcknowledged ? 'border-l-emerald-500' : 'border-l-amber-400';
-  };
+  const activationClass = benefit.activationRequired
+    ? (benefit.activationAcknowledged ? 'border-l-emerald-500' : 'border-l-amber-400')
+    : 'border-l-emerald-500';
+
+  const handleSegmentClick = useCallback((segment: ProgressSegment) => {
+    if (segment.id === 'overall') {
+      onEdit(benefit);
+    } else if (onSegmentEdit) {
+      onSegmentEdit(benefit, segment.id);
+    }
+  }, [benefit, onEdit, onSegmentEdit]);
 
   return (
-    <div className={`benefit-card ${activationClass()}`}>
+    <div className={`benefit-card ${activationClass}`}>
       <div className="flex justify-between items-start mb-2">
         <div>
           <h3 className="font-semibold text-lg">{benefit.name}</h3>
@@ -117,26 +123,20 @@ export function BenefitCard({ benefit, onEdit, onSegmentEdit }: BenefitCardProps
             ${benefit.currentUsed.toFixed(0)} / ${benefit.creditAmount}
           </span>
         </div>
-        <ProgressBar segments={getSegments()} segmentsCount={segmentsCount()} onSegmentClick={segment => {
-  if (segment.id === 'overall') {
-    onEdit(benefit);
-  } else if (onSegmentEdit) {
-    onSegmentEdit(benefit, segment.id);
-  }
-}} />
+        <ProgressBar segments={segments} segmentsCount={segmentsCount} onSegmentClick={handleSegmentClick} />
       </div>
 
       <div className="flex justify-between items-center text-sm">
         <div className="text-slate-500">
           Expires: {formatDate(benefit.endDate)}
-          {daysUntilExpiry > 0 && daysUntilExpiry <= 30 && (
+          {daysUntilExpiry > 0 && daysUntilExpiry <= 30 ? (
             <span className="text-amber-400 ml-1">
               ({daysUntilExpiry} days left)
             </span>
-          )}
+          ) : null}
         </div>
         <div className="flex gap-2">
-          {benefit.activationRequired && (
+          {benefit.activationRequired ? (
             <span
               className={`inline-flex items-center text-[11px] px-2 py-0.5 rounded border leading-tight ${
                 benefit.activationAcknowledged
@@ -146,7 +146,7 @@ export function BenefitCard({ benefit, onEdit, onSegmentEdit }: BenefitCardProps
             >
               {benefit.activationAcknowledged ? 'Activated' : 'Needs Activation'}
             </span>
-          )}
+          ) : null}
           <button
             onClick={() => onEdit(benefit)}
             className="btn-secondary text-xs px-3 py-1"
@@ -158,3 +158,5 @@ export function BenefitCard({ benefit, onEdit, onSegmentEdit }: BenefitCardProps
     </div>
   );
 }
+
+export const BenefitCard = memo(BenefitCardComponent);

@@ -7,20 +7,33 @@ import type {
 
 const STORAGE_KEY = 'user-benefits';
 
+// Module-level cache for localStorage reads
+let cachedData: UserBenefitsData | null = null;
+
 export function getUserBenefitsData(): UserBenefitsData {
+  // Return cached data if available
+  if (cachedData !== null) {
+    return cachedData;
+  }
+  
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (!stored) {
-      return { benefits: {} };
+      cachedData = { benefits: {} };
+      return cachedData;
     }
     const parsed = JSON.parse(stored) as UserBenefitsData;
-    return { benefits: parsed.benefits ?? {} };
+    cachedData = { benefits: parsed.benefits ?? {} };
+    return cachedData;
   } catch {
-    return { benefits: {} };
+    cachedData = { benefits: {} };
+    return cachedData;
   }
 }
 
 export function saveUserBenefitsData(data: UserBenefitsData): void {
+  // Update cache when saving
+  cachedData = data;
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
 
@@ -123,5 +136,6 @@ export function toggleActivation(benefitId: string): boolean {
 }
 
 export function clearAllUserData(): void {
+  cachedData = null;
   localStorage.removeItem(STORAGE_KEY);
 }

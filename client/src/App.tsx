@@ -1,7 +1,8 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import type { CreditCard, Benefit, BenefitDefinition, Stats } from './types';
 import { Dashboard } from './pages/Dashboard';
 import { CardDetail } from './pages/CardDetail';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import * as benefitsService from './services/benefits';
 import { api } from './api/client';
 
@@ -15,31 +16,50 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [updateError, setUpdateError] = useState<string | null>(null);
+  
+  // Use ref to track mounted state for async operations
+  const isMountedRef = useRef(true);
 
-  const loadData = useCallback(async () => {
+  const loadData = useCallback(async (signal?: AbortSignal) => {
     try {
       setLoading(true);
-      const [cardsData, definitionsData, benefitsData, allBenefitsData, statsData] = await Promise.all([
+      
+      // Fetch cards and definitions from static JSON
+      const [cardsData, definitionsData] = await Promise.all([
         api.getCards(),
         api.getBenefitDefinitions(),
-        benefitsService.getBenefits(),
-        benefitsService.getBenefits(undefined, true),
-        benefitsService.getStats(),
       ]);
+      
+      // Check if aborted before continuing
+      if (signal?.aborted) return;
+      
+      // Fetch all benefits once, then filter for non-ignored
+      const allBenefitsData = await benefitsService.getBenefits(undefined, true);
+      const benefitsData = allBenefitsData.filter(b => !b.ignored);
+      const statsData = await benefitsService.getStats();
+      
+      // Only update state if still mounted
+      if (signal?.aborted) return;
+      
       setCards(cardsData);
       setDefinitions(definitionsData);
       setBenefits(benefitsData);
       setAllBenefits(allBenefitsData);
       setStats(statsData);
     } catch (err) {
+      if (signal?.aborted) return;
       setError((err as Error).message);
     } finally {
-      setLoading(false);
+      if (!signal?.aborted) {
+        setLoading(false);
+      }
     }
   }, []);
 
   const loadAllBenefitsForCard = useCallback(async (cardId: string) => {
+    if (!isMountedRef.current) return;
     const allBenefitsData = await benefitsService.getBenefits(cardId, true);
+    if (!isMountedRef.current) return;
     setAllBenefits(prev => {
       const otherBenefits = prev.filter(b => b.cardId !== cardId);
       return [...otherBenefits, ...allBenefitsData];
@@ -47,8 +67,19 @@ function App() {
   }, []);
 
   useEffect(() => {
-    loadData();
+    const controller = new AbortController();
+    loadData(controller.signal);
+    return () => {
+      controller.abort();
+    };
   }, [loadData]);
+  
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (selectedCardId) {
@@ -56,7 +87,7 @@ function App() {
     }
   }, [selectedCardId, loadAllBenefitsForCard]);
 
-  const handleUpdateBenefit = async (
+  const handleUpdateBenefit = useCallback(async (
     id: string,
     data: { currentUsed?: number; ignored?: boolean; activationAcknowledged?: boolean; periods?: Record<string, number> }
   ) => {
@@ -91,9 +122,9 @@ function App() {
     } catch (err) {
       setUpdateError(`Failed to update benefit: ${(err as Error).message}`);
     }
-  };
+  }, [definitions]);
 
-  const handleToggleIgnored = async (id: string, data: { ignored: boolean }) => {
+  const handleToggleIgnored = useCallback(async (id: string, data: { ignored: boolean }) => {
     try {
       const definition = definitions.find(d => d.id === id);
       if (!definition) {
@@ -103,17 +134,18 @@ function App() {
       const updated = benefitsService.updateBenefit(id, definition, data);
       setAllBenefits(prev => prev.map(b => b.id === id ? updated : b));
       
-      const [benefitsData, statsData] = await Promise.all([
-        benefitsService.getBenefits(),
-        benefitsService.getStats(),
-      ]);
+      // Fetch non-ignored benefits and stats
+      const allBenefitsData = await benefitsService.getBenefits(undefined, true);
+      const benefitsData = allBenefitsData.filter(b => !b.ignored);
+      const statsData = await benefitsService.getStats();
+      
       setBenefits(benefitsData);
       setStats(statsData);
       setUpdateError(null);
     } catch (err) {
       setUpdateError(`Failed to toggle visibility: ${(err as Error).message}`);
     }
-  };
+  }, [definitions]);
 
   if (loading) {
     return (
@@ -131,7 +163,7 @@ function App() {
       <div className="min-h-screen bg-slate-900 flex items-center justify-center">
         <div className="text-center">
           <p className="text-red-400 mb-4">Error: {error}</p>
-          <button onClick={loadData} className="btn-primary">
+          <button onClick={() => loadData()} className="btn-primary">
             Retry
           </button>
         </div>
@@ -200,26 +232,28 @@ function App() {
       </header>
 
       <main className="max-w-6xl mx-auto px-4 py-8">
-        {selectedCard ? (
-            <CardDetail
-              card={selectedCard}
-              benefits={selectedCardBenefits}
-              allBenefits={selectedCardAllBenefits}
-              onBack={() => setSelectedCardId(null)}
+        <ErrorBoundary>
+          {selectedCard ? (
+              <CardDetail
+                card={selectedCard}
+                benefits={selectedCardBenefits}
+                allBenefits={selectedCardAllBenefits}
+                onBack={() => setSelectedCardId(null)}
+                onUpdateBenefit={handleUpdateBenefit}
+                onToggleIgnored={handleToggleIgnored}
+              />
+
+          ) : (
+            <Dashboard
+              benefits={benefits}
+              cards={cards}
+              allBenefits={allBenefits}
+              stats={stats}
               onUpdateBenefit={handleUpdateBenefit}
               onToggleIgnored={handleToggleIgnored}
             />
-
-        ) : (
-          <Dashboard
-            benefits={benefits}
-            cards={cards}
-            allBenefits={allBenefits}
-            stats={stats}
-            onUpdateBenefit={handleUpdateBenefit}
-            onToggleIgnored={handleToggleIgnored}
-          />
-        )}
+          )}
+        </ErrorBoundary>
       </main>
     </div>
   );
