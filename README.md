@@ -2,7 +2,7 @@
 
 ![Screenshot](screenshot.png)
 
-A web application to track credit card benefits for Amex Platinum and Chase Sapphire Reserve, with usage tracking, progress visualization, and activation reminders.
+A fully static web application to track credit card benefits for Amex Platinum and Chase Sapphire Reserve, with usage tracking, progress visualization, and activation reminders.
 
 ## Features
 
@@ -13,70 +13,50 @@ A web application to track credit card benefits for Amex Platinum and Chase Sapp
   - Red: Missed/Expired
 - **Multiple Reset Frequencies**: Annual, twice-yearly, quarterly, and monthly tracking
 - **Activation Tracking**: Highlight benefits requiring activation with acknowledgment toggle
-- **Notes**: Add notes about how you used each benefit
 - **Expiration Reminders**: See when benefits expire and how many days remain
 - **Multi-Card Support**: Mix Amex Platinum and Chase Sapphire Reserve benefits
+- **Offline-Ready**: All user data stored locally in your browser
 
 ## Tech Stack
 
 - **Runtime**: [Bun](https://bun.sh/)
 - **Language**: TypeScript
-- **Backend**: [Hono](https://hono.dev/) - Lightweight web framework
 - **Frontend**: [React](https://react.dev/) + [Vite](https://vitejs.dev/)
 - **Styling**: [Tailwind CSS](https://tailwindcss.com/)
-- **Storage**: JSON file (`data/benefits.json`)
+- **Data Storage**: 
+  - Benefit definitions: Static JSON (`/benefits.json`)
+  - User data: Browser localStorage
 
 ## Project Structure
 
 ```
 dumb-benefits/
-├── README.md                    # This file
-├── AGENTS.md                    # Agent instructions for development
-├── tsconfig.json                # TypeScript configuration
-├── vite.config.ts               # Vite configuration
-├── tailwind.config.js           # Tailwind CSS configuration
-├── data/
-│   └── benefits.json            # Benefits data (JSON storage)
-├── src/                         # Backend (Hono API)
-│   ├── index.ts                 # Application entry point
-│   ├── api/
-│   │   ├── routes.ts            # API route definitions
-│   │   └── handlers.ts          # Request handlers
-│   ├── models/
-│   │   ├── types.ts             # TypeScript interfaces
-│   │   └── storage.ts           # JSON file operations
-│   ├── services/
-│   │   └── benefits.ts          # Business logic
-│   ├── utils/
-│   │   └── dates.ts             # Date utilities
-│   └── __tests__/               # Backend tests
-│       ├── dates.test.ts
-│       ├── benefits.test.ts
-│       └── routes.test.ts
-└── client/                      # Frontend (React)
-    ├── index.html
-    └── src/
-        ├── main.tsx             # Entry point
-        ├── App.tsx              # Main application
-        ├── index.css            # Global styles
-        ├── api/
-        │   └── client.ts        # API client
-        ├── components/
-        │   ├── ProgressBar.tsx
-        │   ├── BenefitCard.tsx
-        │   ├── EditModal.tsx
-        │   └── CardHeader.tsx
-        ├── pages/
-        │   ├── Dashboard.tsx
-        │   └── CardDetail.tsx
-        ├── types/
-        │   └── index.ts
-        └── utils/
-            └── dateUtils.ts
-
-e2e/                             # Playwright E2E tests
-├── playwright.config.js
-└── browser.test.js
+├── client/                      # Frontend (React + Vite)
+│   ├── public/
+│   │   └── benefits.json        # Static benefit definitions
+│   └── src/
+│       ├── api/client.ts        # Fetches static JSON
+│       ├── components/          # React components
+│       │   ├── BenefitCard.tsx
+│       │   ├── CardHeader.tsx
+│       │   ├── EditModal.tsx
+│       │   ├── ProgressBar.tsx
+│       │   └── Tooltip.tsx
+│       ├── hooks/               # Custom React hooks
+│       ├── pages/               # Page components
+│       │   ├── Dashboard.tsx
+│       │   └── CardDetail.tsx
+│       ├── services/            # Business logic (merges with localStorage)
+│       ├── storage/             # localStorage CRUD
+│       ├── types/               # TypeScript types
+│       └── utils/               # Helper functions
+├── shared/                      # Shared types and utilities
+│   ├── types.ts
+│   └── utils.ts
+├── e2e/                         # Playwright E2E tests
+│   ├── playwright.config.js
+│   └── browser.test.js
+└── dist/                        # Production build output
 ```
 
 ## Getting Started
@@ -88,47 +68,34 @@ e2e/                             # Playwright E2E tests
 ### Installation
 
 ```bash
-# Install dependencies
 bun install
 ```
 
 ### Running the Application
 
 ```bash
-# Run both servers (single terminal, both run in background)
 bun run dev
-
-# Or run separately:
-# Terminal 1: Backend API (port 3000)
-bun run src/index.ts
-
-# Terminal 2: Frontend dev server (port 5173)
-bun run dev:client
 ```
-
-The frontend proxies API requests to the backend automatically in development.
 
 Then open http://localhost:5173 in your browser.
 
 ### Building for Production
 
 ```bash
-# Build frontend
+# Build static files to dist/
 bun run build
 
-# The backend serves the built files automatically in production
+# Preview production build locally
+bun run preview
 ```
 
 ### Running Tests
 
 ```bash
-# Run backend unit tests
-bun test src
-
 # Run E2E tests
 bun run test:e2e
 
-# Install Playwright browsers
+# Install Playwright browsers (first time only)
 bun run test:e2e:install
 ```
 
@@ -142,30 +109,47 @@ bun run lint
 bun run check
 ```
 
+## Deployment
+
+This is a fully static app - no server required. To deploy:
+
+1. Build: `bun run build`
+2. Upload contents of `dist/` to any static host:
+   - GitHub Pages
+   - Netlify
+   - Vercel
+   - AWS S3 + CloudFront
+   - Any web server
+
 ## Seeded Benefits
 
 ### Amex Platinum (Calendar Year Reset)
 
-1. **Uber Cash** - $200 annually for Uber rides and Eats (monthly reset)
-2. **Saks Fifth Avenue** - $100 twice-yearly ($50 each 6-month period)
-3. **Airline Fee Credit** - $200 annually (requires airline selection)
+- **Hotel Credit** - $600 twice-yearly ($300 each period)
+- **Uber Cash** - $200 annually ($15 monthly + $20 December bonus)
+- **Saks Fifth Avenue** - $100 twice-yearly ($50 each period)
+- **Airline Fee Credit** - $200 annually (requires airline selection)
+- **Digital Entertainment** - $240 annually ($20/month)
+- **Walmart+** - $155 annually
+- **Equinox** - $300 annually ($25/month)
+- **Clear Plus** - $199 annually
+- **Global Entry/TSA PreCheck** - $100 every 4.5 years
 
 ### Chase Sapphire Reserve (Anniversary Reset)
 
-1. **Travel Credit** - $300 annually for any travel purchase
-2. **Global Entry/TSA PreCheck** - $120 every 4 years
+- **Travel Credit** - $300 annually
+- **DoorDash DashPass** - Complimentary membership
+- **Lyft Credit** - $60 annually ($5/month)
+- **Instacart+ Credit** - $180 annually ($15/month)
 
-## API Endpoints
+## Data Storage
 
-```
-GET    /api/cards           - List all credit cards
-GET    /api/benefits        - List all benefits (filter by cardId)
-GET    /api/benefits/:id    - Get single benefit
-PATCH  /api/benefits/:id    - Update benefit (currentUsed, notes, status)
-PATCH  /api/benefits/:id/activate - Toggle activation acknowledgment
-GET    /api/reminders       - Get upcoming expirations
-GET    /api/stats           - Get overall statistics
-```
+- **Benefit definitions**: Stored in `client/public/benefits.json` (static, version-controlled)
+- **User data**: Stored in browser `localStorage` under key `user-benefits`
+  - Usage amounts
+  - Activation acknowledgments
+  - Ignored/hidden benefits
+  - Period-specific tracking
 
 ## Data Model
 
@@ -180,7 +164,7 @@ GET    /api/stats           - Get overall statistics
 }
 ```
 
-### Benefit
+### Benefit Definition
 ```typescript
 {
   id: string;
@@ -189,16 +173,27 @@ GET    /api/stats           - Get overall statistics
   shortDescription: string;
   fullDescription: string;
   creditAmount: number;
-  currentUsed: number;
   resetFrequency: 'annual' | 'twice-yearly' | 'quarterly' | 'monthly';
   activationRequired: boolean;
-  activationAcknowledged: boolean;
   startDate: string;
   endDate: string;
-  notes: string;
-  status: 'pending' | 'completed' | 'missed';
   category: string;
   periods?: BenefitPeriod[];
+}
+```
+
+### User State (localStorage)
+```typescript
+{
+  benefits: {
+    [benefitId: string]: {
+      currentUsed: number;
+      activationAcknowledged: boolean;
+      status: 'pending' | 'completed' | 'missed';
+      ignored: boolean;
+      periods?: Record<string, { usedAmount: number; status: string }>;
+    }
+  }
 }
 ```
 

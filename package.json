@@ -3,20 +3,16 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "start": "bun run src/index.ts",
-    "dev": "bun run src/index.ts & bun run dev:client",
-    "dev:client": "vite",
+    "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
     "lint": "oxlint",
     "check": "oxlint --import-plugin --jsx-a11y-plugin",
-    "test": "bun test src",
     "test:e2e": "bunx playwright test --config=e2e/playwright.config.js",
     "test:e2e:ui": "bunx playwright test --config=e2e/playwright.config.js --ui",
     "test:e2e:install": "bunx playwright install chromium"
   },
   "dependencies": {
-    "hono": ">=4.0.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },

@@ -1,54 +1,24 @@
-import { Benefit, CreditCard, Stats, UpdateBenefitRequest } from '../types';
+import type { BenefitDefinition, BenefitsStaticData, CreditCard } from '../../../shared/types';
 
-const API_BASE = '/api';
-
-async function fetchApi<T>(endpoint: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_BASE}${endpoint}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options?.headers,
-    },
-  });
-
+async function fetchStaticData(): Promise<BenefitsStaticData> {
+  const response = await fetch('/benefits.json');
   if (!response.ok) {
-    throw new Error(`API Error: ${response.statusText}`);
+    throw new Error('Failed to load benefits data');
   }
-
-  const result = await response.json();
-  if (!result.success) {
-    throw new Error(result.error || 'Request failed');
-  }
-
-  return result.data;
+  return response.json();
 }
 
 export const api = {
-  getCards: () => fetchApi<CreditCard[]>('/cards'),
-  
-  getBenefits: (cardId?: string, includeIgnored?: boolean) => {
-    const params = new URLSearchParams();
-    if (cardId) params.set('cardId', cardId);
-    if (includeIgnored) params.set('includeIgnored', 'true');
-    const query = params.toString();
-    return fetchApi<Benefit[]>(`/benefits${query ? `?${query}` : ''}`);
+  getCards: async (): Promise<CreditCard[]> => {
+    const data = await fetchStaticData();
+    return data.cards;
   },
-  
-  getBenefit: (id: string) => fetchApi<Benefit>(`/benefits/${id}`),
-  
-  updateBenefit: (id: string, data: UpdateBenefitRequest) => 
-    fetchApi<Benefit>(`/benefits/${id}`, {
-      method: 'PATCH',
-      body: JSON.stringify(data),
-    }),
-  
-  toggleActivation: (id: string) =>
-    fetchApi<Benefit>(`/benefits/${id}/activate`, {
-      method: 'PATCH',
-    }),
-  
-  getReminders: (days: number = 30) =>
-    fetchApi<Benefit[]>(`/reminders?days=${days}`),
-  
-  getStats: () => fetchApi<Stats>('/stats'),
+
+  getBenefitDefinitions: async (cardId?: string): Promise<BenefitDefinition[]> => {
+    const data = await fetchStaticData();
+    if (cardId) {
+      return data.benefits.filter((b) => b.cardId === cardId);
+    }
+    return data.benefits;
+  },
 };

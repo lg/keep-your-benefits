@@ -1,16 +1,10 @@
 import { test, expect } from '@playwright/test';
-import { writeFileSync } from 'fs';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
-
-const rootDir = dirname(fileURLToPath(import.meta.url));
-const userBenefitsPath = join(rootDir, '..', 'data', 'user-benefits.json');
-const baseUserBenefits = JSON.stringify({ benefits: {} });
 
 test.describe('Dashboard', () => {
   test.beforeEach(async ({ page }) => {
-    writeFileSync(userBenefitsPath, baseUserBenefits);
     await page.goto('/');
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
   });
 
   test('loads successfully', async ({ page }) => {
@@ -37,8 +31,9 @@ test.describe('Dashboard', () => {
 
 test.describe('Benefit Cards', () => {
   test.beforeEach(async ({ page }) => {
-    writeFileSync(userBenefitsPath, baseUserBenefits);
     await page.goto('/');
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
   });
 
   test('displays benefit name and description', async ({ page }) => {
@@ -63,8 +58,9 @@ test.describe('Benefit Cards', () => {
 
 test.describe('Edit Modal', () => {
   test.beforeEach(async ({ page }) => {
-    writeFileSync(userBenefitsPath, baseUserBenefits);
     await page.goto('/');
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
   });
 
   test('opens when Edit button clicked', async ({ page }) => {
@@ -100,8 +96,9 @@ test.describe('Edit Modal', () => {
 
 test.describe('Activation Toggle', () => {
   test.beforeEach(async ({ page }) => {
-    writeFileSync(userBenefitsPath, baseUserBenefits);
     await page.goto('/');
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
   });
 
   test('updates activation via edit modal and persists', async ({ page }) => {
@@ -145,8 +142,9 @@ test.describe('Activation Toggle', () => {
 
 test.describe('Card Filtering', () => {
   test.beforeEach(async ({ page }) => {
-    writeFileSync(userBenefitsPath, baseUserBenefits);
     await page.goto('/');
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
   });
 
   test('Amex filter shows only Amex benefits', async ({ page }) => {

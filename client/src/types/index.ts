@@ -3,6 +3,7 @@ export type {
   CreditCard,
   BenefitStatus,
   BenefitPeriod,
+  BenefitDefinition,
   Benefit,
   UpdateBenefitRequest,
   Stats,

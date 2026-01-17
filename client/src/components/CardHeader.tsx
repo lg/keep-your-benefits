@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import type { CreditCard, Benefit, CardStats } from '../types';
-import { api } from '../api/client';
 
 interface CardHeaderProps {
   card: CreditCard;
@@ -24,8 +23,7 @@ export function CardHeader({ card, stats, allBenefits, onUpdateBenefit }: CardHe
     setLoading(benefit.id);
     setError(null);
     try {
-      const updated = await api.updateBenefit(benefit.id, { ignored: !benefit.ignored });
-      onUpdateBenefit(benefit.id, { ignored: updated.ignored });
+      onUpdateBenefit(benefit.id, { ignored: !benefit.ignored });
     } catch (err) {
       setError(`Failed to update: ${(err as Error).message}`);
     } finally {

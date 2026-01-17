@@ -9,8 +9,6 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "outDir": "./dist",
-    "declaration": true,
     "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true,
     "noEmit": true,
@@ -19,6 +17,6 @@
       "@shared/*": ["./shared/*"]
     }
   },
-  "include": ["src/**/*", "shared/**/*"],
-  "exclude": ["node_modules", "client"]
+  "include": ["shared/**/*", "client/**/*"],
+  "exclude": ["node_modules", "dist"]
 }

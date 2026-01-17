@@ -1,11 +1,13 @@
 import { useState, useCallback, useEffect } from 'react';
-import type { CreditCard, Benefit, Stats } from './types';
+import type { CreditCard, Benefit, BenefitDefinition, Stats } from './types';
 import { Dashboard } from './pages/Dashboard';
 import { CardDetail } from './pages/CardDetail';
+import * as benefitsService from './services/benefits';
 import { api } from './api/client';
 
 function App() {
   const [cards, setCards] = useState<CreditCard[]>([]);
+  const [definitions, setDefinitions] = useState<BenefitDefinition[]>([]);
   const [benefits, setBenefits] = useState<Benefit[]>([]);
   const [allBenefits, setAllBenefits] = useState<Benefit[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
@@ -17,13 +19,15 @@ function App() {
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
-      const [cardsData, benefitsData, allBenefitsData, statsData] = await Promise.all([
+      const [cardsData, definitionsData, benefitsData, allBenefitsData, statsData] = await Promise.all([
         api.getCards(),
-        api.getBenefits(),
-        api.getBenefits(undefined, true),
-        api.getStats(),
+        api.getBenefitDefinitions(),
+        benefitsService.getBenefits(),
+        benefitsService.getBenefits(undefined, true),
+        benefitsService.getStats(),
       ]);
       setCards(cardsData);
+      setDefinitions(definitionsData);
       setBenefits(benefitsData);
       setAllBenefits(allBenefitsData);
       setStats(statsData);
@@ -35,7 +39,7 @@ function App() {
   }, []);
 
   const loadAllBenefitsForCard = useCallback(async (cardId: string) => {
-    const allBenefitsData = await api.getBenefits(cardId, true);
+    const allBenefitsData = await benefitsService.getBenefits(cardId, true);
     setAllBenefits(prev => {
       const otherBenefits = prev.filter(b => b.cardId !== cardId);
       return [...otherBenefits, ...allBenefitsData];
@@ -57,11 +61,16 @@ function App() {
     data: { currentUsed?: number; ignored?: boolean; activationAcknowledged?: boolean; periods?: Record<string, number> }
   ) => {
     try {
+      const definition = definitions.find(d => d.id === id);
+      if (!definition) {
+        throw new Error('Benefit not found');
+      }
+
       const { activationAcknowledged, ...updateData } = data;
-      let updated = await api.updateBenefit(id, updateData);
+      let updated = benefitsService.updateBenefit(id, definition, updateData);
 
       if (activationAcknowledged !== undefined && activationAcknowledged !== updated.activationAcknowledged) {
-        updated = await api.toggleActivation(id);
+        updated = benefitsService.toggleActivation(id, definition);
       }
 
       setAllBenefits(prev => prev.map(b => b.id === id ? updated : b));
@@ -76,7 +85,7 @@ function App() {
           return [...prev, updated];
         });
       }
-      const statsData = await api.getStats();
+      const statsData = await benefitsService.getStats();
       setStats(statsData);
       setUpdateError(null);
     } catch (err) {
@@ -86,11 +95,17 @@ function App() {
 
   const handleToggleIgnored = async (id: string, data: { ignored: boolean }) => {
     try {
-      await api.updateBenefit(id, data);
-      setAllBenefits(prev => prev.map(b => b.id === id ? { ...b, ignored: data.ignored } : b));
+      const definition = definitions.find(d => d.id === id);
+      if (!definition) {
+        throw new Error('Benefit not found');
+      }
+
+      const updated = benefitsService.updateBenefit(id, definition, data);
+      setAllBenefits(prev => prev.map(b => b.id === id ? updated : b));
+      
       const [benefitsData, statsData] = await Promise.all([
-        api.getBenefits(),
-        api.getStats(),
+        benefitsService.getBenefits(),
+        benefitsService.getStats(),
       ]);
       setBenefits(benefitsData);
       setStats(statsData);
@@ -153,7 +168,7 @@ function App() {
                 onClick={() => setSelectedCardId(null)}
                 className={`font-bold text-xl ${!selectedCardId ? 'text-white' : 'text-slate-400 hover:text-white'}`}
               >
-                💳 Credit Card Benefits
+                Credit Card Benefits
               </button>
             </div>
             <nav className="flex gap-2">
