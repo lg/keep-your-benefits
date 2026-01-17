@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, type ReactNode, type ReactElement, type MouseEvent as ReactMouseEvent } from 'react';
+import { useState, useEffect, useCallback, memo, type ReactNode, type ReactElement, type MouseEvent as ReactMouseEvent } from 'react';
 import { createPortal } from 'react-dom';
 
 interface TooltipProps {
@@ -6,7 +6,7 @@ interface TooltipProps {
   children?: ReactElement;
 }
 
-export function Tooltip({ content, children }: TooltipProps) {
+function TooltipComponent({ content, children }: TooltipProps) {
   const [visible, setVisible] = useState(false);
   const [position, setPosition] = useState<{ x: number; y: number } | null>(null);
 
@@ -54,3 +54,5 @@ export function Tooltip({ content, children }: TooltipProps) {
     </div>
   );
 }
+
+export const Tooltip = memo(TooltipComponent);

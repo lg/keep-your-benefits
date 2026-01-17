@@ -58,11 +58,6 @@ export function getDefaultUserState(benefit: BenefitDefinition): BenefitUserStat
   };
 }
 
-export function getUserState(benefitId: string): BenefitUserState | undefined {
-  const data = getUserBenefitsData();
-  return data.benefits[benefitId];
-}
-
 export function updateUserState(
   benefitId: string,
   updates: Partial<BenefitUserState>
@@ -87,63 +82,6 @@ export function updateUserState(
   return updated;
 }
 
-export function updatePeriodState(
-  benefitId: string,
-  periodId: string,
-  updates: Partial<BenefitPeriodUserState>
-): BenefitPeriodUserState {
-  const data = getUserBenefitsData();
-  const existing = data.benefits[benefitId] ?? {
-    currentUsed: 0,
-    activationAcknowledged: false,
-    status: 'pending' as const,
-    ignored: false,
-    periods: {},
-  };
-
-  const existingPeriod = existing.periods?.[periodId] ?? {
-    usedAmount: 0,
-    status: 'pending' as const,
-  };
-
-  const updatedPeriod: BenefitPeriodUserState = {
-    ...existingPeriod,
-    ...updates,
-  };
-
-  data.benefits[benefitId] = {
-    ...existing,
-    periods: {
-      ...existing.periods,
-      [periodId]: updatedPeriod,
-    },
-  };
-
-  saveUserBenefitsData(data);
-
-  return updatedPeriod;
-}
-
-export function toggleActivation(benefitId: string): boolean {
-  const data = getUserBenefitsData();
-  const existing = data.benefits[benefitId];
-  const currentValue = existing?.activationAcknowledged ?? false;
-  const newValue = !currentValue;
-
-  updateUserState(benefitId, { activationAcknowledged: newValue });
-
-  return newValue;
-}
-
-export function clearAllUserData(): void {
-  cachedData = null;
-  localStorage.removeItem(STORAGE_KEY);
-}
-
-/**
- * Import benefit usage from CSV data
- * Replaces existing usage data for the specified benefits
- */
 export function importBenefitUsage(
   imports: Map<string, { currentUsed: number; periods?: Record<string, { usedAmount: number; transactions?: { date: string; description: string; amount: number }[] }>; transactions?: { date: string; description: string; amount: number }[] }>,
   benefitDefinitions: BenefitDefinition[]
@@ -199,9 +137,6 @@ export function importBenefitUsage(
   saveUserBenefitsData(data);
 }
 
-/**
- * Calculate overall benefit status based on usage
- */
 function calculateBenefitStatus(
   state: BenefitUserState,
   definition: BenefitDefinition

@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import type { CreditCard, Benefit, BenefitDefinition, Stats } from './types';
 import { Dashboard } from './pages/Dashboard';
 import { CardDetail } from './pages/CardDetail';
@@ -17,9 +17,6 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [updateError, setUpdateError] = useState<string | null>(null);
-  
-  // Use ref to track mounted state for async operations
-  const isMountedRef = useRef(true);
 
   const loadData = useCallback(async (signal?: AbortSignal) => {
     try {
@@ -57,10 +54,9 @@ function App() {
     }
   }, []);
 
-  const loadAllBenefitsForCard = useCallback(async (cardId: string) => {
-    if (!isMountedRef.current) return;
+  const loadAllBenefitsForCard = useCallback(async (cardId: string, signal?: AbortSignal) => {
     const allBenefitsData = await benefitsService.getBenefits(cardId, true);
-    if (!isMountedRef.current) return;
+    if (signal?.aborted) return;
     setAllBenefits(prev => {
       const otherBenefits = prev.filter(b => b.cardId !== cardId);
       return [...otherBenefits, ...allBenefitsData];
@@ -76,66 +72,57 @@ function App() {
   }, [loadData]);
   
   useEffect(() => {
-    isMountedRef.current = true;
-    return () => {
-      isMountedRef.current = false;
-    };
-  }, []);
-
-  useEffect(() => {
     if (selectedCardId) {
-      loadAllBenefitsForCard(selectedCardId);
+      const controller = new AbortController();
+      loadAllBenefitsForCard(selectedCardId, controller.signal);
+      return () => {
+        controller.abort();
+      };
     }
   }, [selectedCardId, loadAllBenefitsForCard]);
 
-  const handleToggleActivation = useCallback(async (id: string) => {
-    try {
-      const definition = definitions.find(d => d.id === id);
-      if (!definition) {
-        throw new Error('Benefit not found');
-      }
-
-      const updated = benefitsService.toggleActivation(id, definition);
-
-      setAllBenefits(prev => prev.map(b => b.id === id ? updated : b));
-      setBenefits(prev => prev.map(b => b.id === id ? updated : b));
-      setUpdateError(null);
-    } catch (err) {
-      setUpdateError(`Failed to toggle activation: ${(err as Error).message}`);
+  const handleToggleActivation = useCallback((id: string) => {
+    const definition = definitions.find(d => d.id === id);
+    if (!definition) {
+      setUpdateError('Benefit not found');
+      return;
     }
+
+    const updated = benefitsService.toggleActivation(id, definition);
+
+    setAllBenefits(prev => prev.map(b => b.id === id ? updated : b));
+    setBenefits(prev => prev.map(b => b.id === id ? updated : b));
+    setUpdateError(null);
   }, [definitions]);
 
   const handleToggleVisibility = useCallback(async (id: string) => {
-    try {
-      const definition = definitions.find(d => d.id === id);
-      if (!definition) {
-        throw new Error('Benefit not found');
-      }
-
-      const currentBenefit = allBenefits.find(b => b.id === id);
-      const newIgnored = !currentBenefit?.ignored;
-
-      const updated = benefitsService.updateBenefit(id, definition, { ignored: newIgnored });
-
-      setAllBenefits(prev => prev.map(b => b.id === id ? updated : b));
-      if (newIgnored) {
-        setBenefits(prev => prev.filter(b => b.id !== id));
-      } else {
-        setBenefits(prev => {
-          const exists = prev.find(b => b.id === id);
-          if (exists) {
-            return prev.map(b => b.id === id ? updated : b);
-          }
-          return [...prev, updated];
-        });
-      }
-
-      const statsData = await benefitsService.getStats();
-      setStats(statsData);
-      setUpdateError(null);
-    } catch (err) {
-      setUpdateError(`Failed to toggle visibility: ${(err as Error).message}`);
+    const definition = definitions.find(d => d.id === id);
+    if (!definition) {
+      setUpdateError('Benefit not found');
+      return;
     }
+
+    const currentBenefit = allBenefits.find(b => b.id === id);
+    const newIgnored = !currentBenefit?.ignored;
+
+    const updated = benefitsService.updateBenefit(id, definition, { ignored: newIgnored });
+
+    setAllBenefits(prev => prev.map(b => b.id === id ? updated : b));
+    if (newIgnored) {
+      setBenefits(prev => prev.filter(b => b.id !== id));
+    } else {
+      setBenefits(prev => {
+        const exists = prev.find(b => b.id === id);
+        if (exists) {
+          return prev.map(b => b.id === id ? updated : b);
+        }
+        return [...prev, updated];
+      });
+    }
+
+    const statsData = await benefitsService.getStats();
+    setStats(statsData);
+    setUpdateError(null);
   }, [definitions, allBenefits]);
 
   const handleImport = useCallback(async (
@@ -146,26 +133,38 @@ function App() {
       transactions?: { date: string; description: string; amount: number }[];
     }>
   ) => {
-    try {
-      // Get definitions for this card
-      const cardDefinitions = definitions.filter(d => d.cardId === cardId);
-      
-      // Import to localStorage
-      importBenefitUsage(aggregated, cardDefinitions);
-      
-      // Refresh benefits from storage
-      const allBenefitsData = await benefitsService.getBenefits(undefined, true);
-      const benefitsData = allBenefitsData.filter(b => !b.ignored);
-      const statsData = await benefitsService.getStats();
-      
-      setAllBenefits(allBenefitsData);
-      setBenefits(benefitsData);
-      setStats(statsData);
-      setUpdateError(null);
-    } catch (err) {
-      setUpdateError(`Failed to import: ${(err as Error).message}`);
-    }
+    // Get definitions for this card
+    const cardDefinitions = definitions.filter(d => d.cardId === cardId);
+    
+    // Import to localStorage
+    importBenefitUsage(aggregated, cardDefinitions);
+    
+    // Refresh benefits from storage
+    const allBenefitsData = await benefitsService.getBenefits(undefined, true);
+    const benefitsData = allBenefitsData.filter(b => !b.ignored);
+    const statsData = await benefitsService.getStats();
+    
+    setAllBenefits(allBenefitsData);
+    setBenefits(benefitsData);
+    setStats(statsData);
+    setUpdateError(null);
   }, [definitions]);
+
+  const handleClearError = useCallback(() => {
+    setUpdateError(null);
+  }, []);
+
+  const handleBack = useCallback(() => {
+    setSelectedCardId(null);
+  }, []);
+
+  const handleRetry = useCallback(() => {
+    loadData();
+  }, [loadData]);
+
+  const handleCardSelect = useCallback((cardId: string) => {
+    setSelectedCardId(cardId);
+  }, []);
 
   if (loading) {
     return (
@@ -183,7 +182,7 @@ function App() {
       <div className="min-h-screen bg-slate-900 flex items-center justify-center">
         <div className="text-center">
           <p className="text-red-400 mb-4">Error: {error}</p>
-          <button onClick={() => loadData()} className="btn-primary">
+          <button onClick={handleRetry} className="btn-primary" type="button">
             Retry
           </button>
         </div>
@@ -205,8 +204,9 @@ function App() {
         <div className="fixed top-4 right-4 bg-red-600 text-white px-4 py-2 rounded-lg shadow-lg z-50 flex items-center gap-2">
           <span>{updateError}</span>
           <button 
-            onClick={() => setUpdateError(null)}
+            onClick={handleClearError}
             className="text-white hover:text-red-200"
+            type="button"
           >
             ✕
           </button>
@@ -217,31 +217,34 @@ function App() {
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-4">
               <button
-                onClick={() => setSelectedCardId(null)}
+                onClick={handleBack}
                 className={`font-bold text-xl ${!selectedCardId ? 'text-white' : 'text-slate-400 hover:text-white'}`}
+                type="button"
               >
                 Keep Your Benefits
               </button>
             </div>
             <nav className="flex gap-2">
               <button
-                onClick={() => setSelectedCardId(null)}
+                onClick={handleBack}
                 className={`px-3 py-1 rounded ${
                   !selectedCardId ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'
                 }`}
+                type="button"
               >
                 All Cards
               </button>
               {cards.map(card => (
                 <button
                   key={card.id}
-                  onClick={() => setSelectedCardId(card.id)}
+                  onClick={() => handleCardSelect(card.id)}
                   className={`px-4 py-2 rounded text-sm font-medium ${
                     selectedCardId === card.id ? 'text-white' : 'text-slate-400 hover:text-white'
                   }`}
                   style={{ 
                     backgroundColor: selectedCardId === card.id ? card.color : undefined 
                   }}
+                  type="button"
                 >
                   {card.name}
                 </button>
@@ -259,7 +262,7 @@ function App() {
                 benefits={selectedCardBenefits}
                 allBenefits={selectedCardAllBenefits}
                 definitions={definitions.filter(d => d.cardId === selectedCardId)}
-                onBack={() => setSelectedCardId(null)}
+                onBack={handleBack}
                 onToggleActivation={handleToggleActivation}
                 onToggleVisibility={handleToggleVisibility}
                 onImport={handleImport}

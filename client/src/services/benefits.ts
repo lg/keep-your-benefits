@@ -5,7 +5,6 @@ import type {
   BenefitPeriodDefinition,
   BenefitPeriodUserState,
   BenefitUserState,
-  CreditCard,
   Stats,
   UpdateBenefitRequest,
 } from '../../../shared/types';
@@ -59,10 +58,6 @@ function mergeBenefit(
   };
 }
 
-export async function getCards(): Promise<CreditCard[]> {
-  return api.getCards();
-}
-
 export async function getBenefits(
   cardId?: string,
   includeIgnored?: boolean
@@ -79,18 +74,6 @@ export async function getBenefits(
   }
 
   return merged.filter((b) => !b.ignored);
-}
-
-export async function getBenefit(id: string): Promise<Benefit | undefined> {
-  const definitions = await api.getBenefitDefinitions();
-  const definition = definitions.find((d) => d.id === id);
-
-  if (!definition) {
-    return undefined;
-  }
-
-  const userData = getUserBenefitsData();
-  return mergeBenefit(definition, userData.benefits[id]);
 }
 
 export function updateBenefit(
@@ -124,29 +107,6 @@ export function toggleActivation(
   });
 
   return mergeBenefit(definition, updatedState);
-}
-
-export async function getUpcomingExpirations(
-  days: number = 30,
-  includeIgnored?: boolean
-): Promise<Benefit[]> {
-  const now = new Date();
-  const cutoff = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
-
-  let benefits = await getBenefits(undefined, true);
-
-  benefits = benefits.filter((benefit) => {
-    const endDate = new Date(benefit.endDate);
-    return endDate > now && endDate <= cutoff && benefit.status === 'pending';
-  });
-
-  if (!includeIgnored) {
-    benefits = benefits.filter((b) => !b.ignored);
-  }
-
-  return benefits.sort(
-    (a, b) => new Date(a.endDate).getTime() - new Date(b.endDate).getTime()
-  );
 }
 
 export async function getStats(): Promise<Stats> {

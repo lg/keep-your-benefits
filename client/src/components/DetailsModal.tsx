@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useLayoutEffect, type MouseEvent, type KeyboardEvent } from 'react';
+import { useState, useEffect, useRef, useLayoutEffect, useCallback, useMemo, memo, type MouseEvent, type KeyboardEvent } from 'react';
 import type { Benefit } from '../types';
 import type { StoredTransaction } from '../../../shared/types';
 
@@ -11,46 +11,48 @@ interface DetailsModalProps {
   initialPeriodId?: string;
 }
 
-export function DetailsModal({ benefit, isOpen, onClose, onToggleActivation, onToggleVisibility, initialPeriodId }: DetailsModalProps) {
+function DetailsModalComponent({ benefit, isOpen, onClose, onToggleActivation, onToggleVisibility, initialPeriodId }: DetailsModalProps) {
   const periodTabsRef = useRef<HTMLDivElement>(null);
-  const [visiblePeriods, setVisiblePeriods] = useState<{ id: string }[]>([]);
   const [targetPeriodId, setTargetPeriodId] = useState<string>('');
   const [selectedPeriodId, setSelectedPeriodId] = useState<string>('');
 
+  const now = new Date();
+  const displayPeriods = useMemo(() => {
+    if (!benefit?.periods) return [];
+    return benefit.periods
+      .filter(period => new Date(period.startDate) <= now)
+      .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
+  }, [benefit?.periods]);
+
   useEffect(() => {
     if (benefit) {
-      const now = new Date();
-      const periods = (benefit.periods ?? [])
-        .filter(period => new Date(period.startDate) <= now)
-        .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
-      setVisiblePeriods(periods);
-
-      const periodId = initialPeriodId && periods.some(p => p.id === initialPeriodId)
+      const periodId = initialPeriodId && displayPeriods.some(p => p.id === initialPeriodId)
         ? initialPeriodId
-        : (() => {
-            const currentPeriod = periods.find(period => {
-              const start = new Date(period.startDate);
-              const end = new Date(period.endDate);
-              return now >= start && now <= end;
-            });
-            return currentPeriod?.id ?? periods[0]?.id ?? '';
-          })();
+        : displayPeriods.find(period => {
+            const start = new Date(period.startDate);
+            const end = new Date(period.endDate);
+            return now >= start && now <= end;
+          })?.id ?? displayPeriods[0]?.id ?? '';
 
       setSelectedPeriodId(periodId);
       setTargetPeriodId(periodId);
     }
-  }, [benefit, initialPeriodId]);
+  }, [benefit, initialPeriodId, displayPeriods]);
+
+  const handlePeriodClick = useCallback((periodId: string) => {
+    setSelectedPeriodId(periodId);
+  }, []);
 
   useLayoutEffect(() => {
-    if (!periodTabsRef.current || !targetPeriodId || visiblePeriods.length === 0) return;
+    if (!periodTabsRef.current || !targetPeriodId || displayPeriods.length === 0) return;
     const container = periodTabsRef.current;
     container.scrollLeft = container.scrollWidth;
-  }, [targetPeriodId, visiblePeriods, isOpen]);
+  }, [targetPeriodId, displayPeriods, isOpen]);
 
   useEffect(() => {
-    if (!periodTabsRef.current || !targetPeriodId || visiblePeriods.length === 0) return;
+    if (!periodTabsRef.current || !targetPeriodId || displayPeriods.length === 0) return;
     const container = periodTabsRef.current;
-    const targetIndex = visiblePeriods.findIndex((p: { id: string }) => p.id === targetPeriodId);
+    const targetIndex = displayPeriods.findIndex((p: { id: string }) => p.id === targetPeriodId);
     if (targetIndex >= 0) {
       const timer = setTimeout(() => {
         const tabElements = container.querySelectorAll('button');
@@ -61,7 +63,7 @@ export function DetailsModal({ benefit, isOpen, onClose, onToggleActivation, onT
       }, 50);
       return () => clearTimeout(timer);
     }
-  }, [targetPeriodId, visiblePeriods, isOpen]);
+  }, [targetPeriodId, displayPeriods, isOpen]);
 
   if (!isOpen || !benefit) return null;
 
@@ -82,11 +84,6 @@ export function DetailsModal({ benefit, isOpen, onClose, onToggleActivation, onT
     ? benefit.creditAmount / benefit.periods.length
     : benefit.creditAmount;
 
-  const now = new Date();
-  const periodEntries = benefit.periods ?? [];
-  const displayPeriods = periodEntries
-    .filter(period => new Date(period.startDate) <= now)
-    .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
   const selectedPeriod = displayPeriods.find(period => period.id === selectedPeriodId) ?? displayPeriods[0];
   const selectedPeriodIdValue = selectedPeriod?.id ?? '';
 
@@ -165,7 +162,7 @@ export function DetailsModal({ benefit, isOpen, onClose, onToggleActivation, onT
                       <button
                         key={period.id}
                         type="button"
-                        onClick={() => setSelectedPeriodId(period.id)}
+                        onClick={() => handlePeriodClick(period.id)}
                         className={`px-3 py-1 rounded-xl text-xs font-medium border transition-colors whitespace-nowrap ${borderClass} ${
                           isSelected
                             ? 'bg-slate-200 text-slate-900'
@@ -190,8 +187,8 @@ export function DetailsModal({ benefit, isOpen, onClose, onToggleActivation, onT
                   </div>
                   {transactions.length > 0 ? (
                     <div className="space-y-1">
-                      {transactions.map((tx, idx) => (
-                        <div key={idx} className="flex justify-between text-sm py-1">
+                  {transactions.map((tx) => (
+                    <div key={`${tx.date}-${tx.description}-${tx.amount}`} className="flex justify-between text-sm py-1">
                           <span className="text-slate-300">
                             {formatDate(tx.date)} {tx.description}
                           </span>
@@ -219,8 +216,8 @@ export function DetailsModal({ benefit, isOpen, onClose, onToggleActivation, onT
             <div className="text-sm text-slate-400 mb-2">Transactions</div>
             {transactions.length > 0 ? (
               <div className="space-y-1">
-                {transactions.map((tx, idx) => (
-                  <div key={idx} className="flex justify-between text-sm py-1">
+                {transactions.map((tx) => (
+                  <div key={`${tx.date}-${tx.description}-${tx.amount}`} className="flex justify-between text-sm py-1">
                     <span className="text-slate-300">
                       {formatDate(tx.date)} {tx.description}
                     </span>
@@ -267,7 +264,7 @@ export function DetailsModal({ benefit, isOpen, onClose, onToggleActivation, onT
         </div>
 
         <div className="flex gap-2 justify-end">
-          <button onClick={onClose} className="btn-secondary">
+          <button onClick={onClose} className="btn-secondary" type="button">
             Close
           </button>
         </div>
@@ -275,3 +272,5 @@ export function DetailsModal({ benefit, isOpen, onClose, onToggleActivation, onT
     </div>
   );
 }
+
+export const DetailsModal = memo(DetailsModalComponent);

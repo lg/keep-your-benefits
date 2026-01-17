@@ -327,9 +327,9 @@ export function ImportModal({
                   </tr>
                 </thead>
                 <tbody>
-                  {displayRows.map((row, idx) => (
+                  {displayRows.map((row) => (
                     <tr
-                      key={idx}
+                      key={`${row.date.getTime()}-${row.description}`}
                       className={`border-t border-slate-700 ${
                         row.isMatched
                           ? 'hover:bg-slate-800/50'

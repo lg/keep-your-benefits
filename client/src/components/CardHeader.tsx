@@ -1,18 +1,16 @@
-import { useState } from 'react';
+import { useState, useCallback, memo } from 'react';
 import type { CreditCard, Benefit, CardStats } from '../types';
 
 interface CardHeaderProps {
   card: CreditCard;
   stats?: CardStats;
   allBenefits: Benefit[];
-  onUpdateBenefit: (id: string, data: { ignored: boolean }) => void;
+  onUpdateBenefit: (id: string) => void;
   onImportClick?: () => void;
 }
 
-export function CardHeader({ card, stats, allBenefits, onUpdateBenefit, onImportClick }: CardHeaderProps) {
+function CardHeaderComponent({ card, stats, allBenefits, onUpdateBenefit, onImportClick }: CardHeaderProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [loading, setLoading] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
   const percentUsed = stats 
     ? Math.min((stats.usedValue / stats.totalValue) * 100, 100) 
@@ -20,17 +18,9 @@ export function CardHeader({ card, stats, allBenefits, onUpdateBenefit, onImport
 
   const ignoredCount = allBenefits.filter(b => b.ignored).length;
 
-  const handleToggle = async (benefit: Benefit) => {
-    setLoading(benefit.id);
-    setError(null);
-    try {
-      onUpdateBenefit(benefit.id, { ignored: !benefit.ignored });
-    } catch (err) {
-      setError(`Failed to update: ${(err as Error).message}`);
-    } finally {
-      setLoading(null);
-    }
-  };
+  const handleToggle = useCallback((benefit: Benefit) => {
+    onUpdateBenefit(benefit.id);
+  }, [onUpdateBenefit]);
 
   return (
     <div 
@@ -63,7 +53,7 @@ export function CardHeader({ card, stats, allBenefits, onUpdateBenefit, onImport
           )}
           <div className="relative">
             <button
-              onClick={() => setDropdownOpen(!dropdownOpen)}
+              onClick={() => setDropdownOpen(prev => !prev)}
               className="p-2 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-white transition-colors"
               title="Manage benefits"
             >
@@ -73,40 +63,36 @@ export function CardHeader({ card, stats, allBenefits, onUpdateBenefit, onImport
             </button>
               {dropdownOpen && (
                 <>
-                  <button
-                    className="fixed inset-0 z-10 bg-transparent border-0 cursor-default"
-                    onClick={() => setDropdownOpen(false)}
-                    onKeyDown={(e) => e.key === 'Escape' && setDropdownOpen(false)}
-                    tabIndex={0}
-                    aria-label="Close dropdown"
-                  />
-                  <div 
-                    className="absolute right-0 top-full mt-2 w-64 bg-slate-800 border border-slate-700 rounded-lg shadow-xl z-20 max-h-80 overflow-y-auto"
-                    role="menu"
-                  >
-                  <div className="p-2">
-                    <p className="text-xs text-slate-500 px-2 py-1">Toggle benefits visibility</p>
-                    {error && (
-                      <p className="text-xs text-red-400 px-2 py-1">{error}</p>
-                    )}
-                    {allBenefits.map(benefit => (
-                      <label
-                        key={benefit.id}
-                        className="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-700 rounded cursor-pointer"
-                        role="menuitem"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={!benefit.ignored}
-                          onChange={() => handleToggle(benefit)}
-                          disabled={loading === benefit.id}
-                          className="rounded border-slate-600 bg-slate-700 text-blue-500 focus:ring-blue-500"
-                        />
-                        <span className="text-sm truncate flex-1">{benefit.name}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
+                   <button
+                     className="fixed inset-0 z-10 bg-transparent border-0 cursor-default"
+                     onClick={() => setDropdownOpen(false)}
+                     onKeyDown={(e) => e.key === 'Escape' && setDropdownOpen(false)}
+                     tabIndex={0}
+                     aria-label="Close dropdown"
+                   />
+                   <div 
+                     className="absolute right-0 top-full mt-2 w-64 bg-slate-800 border border-slate-700 rounded-lg shadow-xl z-20 max-h-80 overflow-y-auto"
+                     role="menu"
+                   >
+                   <div className="p-2">
+                     <p className="text-xs text-slate-500 px-2 py-1">Toggle benefits visibility</p>
+                     {allBenefits.map(benefit => (
+                       <label
+                         key={benefit.id}
+                         className="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-700 rounded cursor-pointer"
+                         role="menuitem"
+                       >
+                         <input
+                           type="checkbox"
+                           checked={!benefit.ignored}
+                           onChange={() => handleToggle(benefit)}
+                           className="rounded border-slate-600 bg-slate-700 text-blue-500 focus:ring-blue-500"
+                         />
+                         <span className="text-sm truncate flex-1">{benefit.name}</span>
+                       </label>
+                     ))}
+                   </div>
+                 </div>
               </>
             )}
           </div>
@@ -137,3 +123,5 @@ export function CardHeader({ card, stats, allBenefits, onUpdateBenefit, onImport
     </div>
   );
 }
+
+export const CardHeader = memo(CardHeaderComponent);
