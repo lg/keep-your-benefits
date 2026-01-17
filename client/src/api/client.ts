@@ -1,7 +1,7 @@
 import type { BenefitDefinition, BenefitsStaticData, CreditCard } from '../../../shared/types';
 
 async function fetchStaticData(): Promise<BenefitsStaticData> {
-  const response = await fetch('/benefits.json');
+  const response = await fetch(`${import.meta.env.BASE_URL}benefits.json`);
   if (!response.ok) {
     throw new Error('Failed to load benefits data');
   }
