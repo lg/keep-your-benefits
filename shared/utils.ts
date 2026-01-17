@@ -32,11 +32,81 @@ export function getTimeProgress(startDate: string, endDate: string): number {
 }
 
 export function calculateStats(benefits: Benefit[]): CardStats {
+  const now = new Date();
+  const totalBenefits = benefits.length;
+
+  let totalValue = 0;
+  let usedValue = 0;
+  let currentPeriodCompletedCount = 0;
+  let ytdCompletedPeriods = 0;
+  let ytdTotalPeriods = 0;
+  let pendingCount = 0;
+  let missedCount = 0;
+
+  for (const benefit of benefits) {
+    totalValue += benefit.creditAmount;
+    usedValue += benefit.currentUsed;
+
+    if (benefit.periods && benefit.periods.length > 0) {
+      const segmentValue = benefit.creditAmount / benefit.periods.length;
+
+      for (const period of benefit.periods) {
+        const start = new Date(period.startDate);
+        const end = new Date(period.endDate);
+        const isFuture = now < start;
+        const isPast = now > end;
+        const isCurrent = !isFuture && !isPast;
+        const isComplete = period.usedAmount >= segmentValue;
+
+        if (!isFuture) {
+          ytdTotalPeriods++;
+
+          if (isComplete) {
+            ytdCompletedPeriods++;
+          } else if (isPast) {
+            missedCount++;
+          } else if (isCurrent) {
+            pendingCount++;
+          }
+        }
+
+        if (isCurrent && isComplete) {
+          currentPeriodCompletedCount++;
+        }
+      }
+    } else {
+      const isComplete = benefit.currentUsed >= benefit.creditAmount;
+      const isPast = now > new Date(benefit.endDate);
+      const hasStarted = now >= new Date(benefit.startDate);
+      const isCurrent = hasStarted && !isPast;
+
+      if (isCurrent) {
+        ytdTotalPeriods++;
+        if (isComplete) {
+          ytdCompletedPeriods++;
+          currentPeriodCompletedCount++;
+        } else {
+          pendingCount++;
+        }
+      } else if (isPast) {
+        ytdTotalPeriods++;
+        if (isComplete) {
+          ytdCompletedPeriods++;
+        } else {
+          missedCount++;
+        }
+      }
+    }
+  }
+
   return {
-    totalValue: benefits.reduce((sum, b) => sum + b.creditAmount, 0),
-    usedValue: benefits.reduce((sum, b) => sum + b.currentUsed, 0),
-    completedCount: benefits.filter(b => b.status === 'completed').length,
-    pendingCount: benefits.filter(b => b.status === 'pending').length,
-    missedCount: benefits.filter(b => b.status === 'missed').length,
+    totalBenefits,
+    totalValue,
+    usedValue,
+    currentPeriodCompletedCount,
+    ytdCompletedPeriods,
+    ytdTotalPeriods,
+    pendingCount,
+    missedCount,
   };
 }

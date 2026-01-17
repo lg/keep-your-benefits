@@ -114,7 +114,12 @@ function CardHeaderComponent({ card, stats, allBenefits, onUpdateBenefit, onImpo
             />
           </div>
           <div className="flex gap-4 mt-2 text-xs">
-            <span className="text-emerald-400">✓ {stats.completedCount} completed</span>
+            <span className="text-emerald-400">
+              Current: {stats.currentPeriodCompletedCount}/{stats.totalBenefits}
+            </span>
+            <span className="text-emerald-400">
+              YTD: {stats.ytdCompletedPeriods}/{stats.ytdTotalPeriods}
+            </span>
             <span className="text-amber-400">◐ {stats.pendingCount} pending</span>
             <span className="text-red-400">✗ {stats.missedCount} missed</span>
           </div>

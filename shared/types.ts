@@ -78,15 +78,20 @@ export interface Stats {
   totalBenefits: number;
   totalValue: number;
   usedValue: number;
-  completedCount: number;
+  currentPeriodCompletedCount: number;
+  ytdCompletedPeriods: number;
+  ytdTotalPeriods: number;
   pendingCount: number;
   missedCount: number;
 }
 
 export interface CardStats {
+  totalBenefits: number;
   totalValue: number;
   usedValue: number;
-  completedCount: number;
+  currentPeriodCompletedCount: number;
+  ytdCompletedPeriods: number;
+  ytdTotalPeriods: number;
   pendingCount: number;
   missedCount: number;
 }

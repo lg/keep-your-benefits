@@ -8,6 +8,7 @@ import type {
   Stats,
   UpdateBenefitRequest,
 } from '../../../shared/types';
+import { calculateStats } from '../../../shared/utils';
 import { api } from '../api/client';
 import {
   getDefaultUserState,
@@ -111,13 +112,16 @@ export function toggleActivation(
 
 export async function getStats(): Promise<Stats> {
   const benefits = await getBenefits(undefined, false);
+  const cardStats = calculateStats(benefits);
 
   return {
     totalBenefits: benefits.length,
-    totalValue: benefits.reduce((sum, b) => sum + b.creditAmount, 0),
-    usedValue: benefits.reduce((sum, b) => sum + b.currentUsed, 0),
-    completedCount: benefits.filter((b) => b.status === 'completed').length,
-    pendingCount: benefits.filter((b) => b.status === 'pending').length,
-    missedCount: benefits.filter((b) => b.status === 'missed').length,
+    totalValue: cardStats.totalValue,
+    usedValue: cardStats.usedValue,
+    currentPeriodCompletedCount: cardStats.currentPeriodCompletedCount,
+    ytdCompletedPeriods: cardStats.ytdCompletedPeriods,
+    ytdTotalPeriods: cardStats.ytdTotalPeriods,
+    pendingCount: cardStats.pendingCount,
+    missedCount: cardStats.missedCount,
   };
 }

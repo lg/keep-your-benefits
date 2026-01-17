@@ -77,7 +77,7 @@ export function Dashboard({
   return (
     <div>
       {stats && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
           <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
             <p className="text-slate-400 text-sm">Total Value</p>
             <p className="text-2xl font-bold">${stats.totalValue}</p>
@@ -93,9 +93,15 @@ export function Dashboard({
             </p>
           </div>
           <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
-            <p className="text-slate-400 text-sm">Completed</p>
+            <p className="text-slate-400 text-sm">Current Period</p>
             <p className="text-2xl font-bold text-emerald-400">
-              {stats.completedCount}/{stats.totalBenefits}
+              {stats.currentPeriodCompletedCount}/{stats.totalBenefits}
+            </p>
+          </div>
+          <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
+            <p className="text-slate-400 text-sm">Year-to-date</p>
+            <p className="text-2xl font-bold text-emerald-400">
+              {stats.ytdCompletedPeriods}/{stats.ytdTotalPeriods}
             </p>
           </div>
         </div>
