@@ -81,7 +81,7 @@ bun run test:e2e:install
 ### File Structure
 
 ```
-dumb-benefits/
+keep-your-benefits/
 ├── client/                  # Frontend (React + Vite)
 │   ├── public/
 │   │   └── benefits.json    # Static benefit definitions

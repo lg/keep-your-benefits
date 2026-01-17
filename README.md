@@ -30,7 +30,7 @@ A fully static web application to track credit card benefits for Amex Platinum a
 ## Project Structure
 
 ```
-dumb-benefits/
+keep-your-benefits/
 ├── client/                      # Frontend (React + Vite)
 │   ├── public/
 │   │   └── benefits.json        # Static benefit definitions
