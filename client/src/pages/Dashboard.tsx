@@ -1,8 +1,9 @@
-import { useState } from 'react';
 import type { Benefit, Stats, CreditCard } from '../types';
 import { BenefitCard } from '../components/BenefitCard';
 import { CardHeader } from '../components/CardHeader';
 import { EditModal } from '../components/EditModal';
+import { useEditModal } from '../hooks/useEditModal';
+import { calculateStats } from '@shared/utils';
 
 interface DashboardProps {
   benefits: Benefit[];
@@ -21,28 +22,7 @@ export function Dashboard({
   onUpdateBenefit,
   onToggleIgnored
 }: DashboardProps) {
-  const [editingBenefit, setEditingBenefit] = useState<Benefit | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-
-  const handleEdit = (benefit: Benefit) => {
-    setEditingBenefit(benefit);
-    setIsModalOpen(true);
-  };
-
-  const handleSave = (
-    id: string,
-    data: { notes: string; ignored?: boolean; activationAcknowledged?: boolean; periods?: Record<string, number> }
-  ) => {
-    onUpdateBenefit(id, data);
-  };
-
-  const getCardStats = (cardBenefits: Benefit[]) => ({
-    totalValue: cardBenefits.reduce((sum, b) => sum + b.creditAmount, 0),
-    usedValue: cardBenefits.reduce((sum, b) => sum + b.currentUsed, 0),
-    completedCount: cardBenefits.filter(b => b.status === 'completed').length,
-    pendingCount: cardBenefits.filter(b => b.status === 'pending').length,
-    missedCount: cardBenefits.filter(b => b.status === 'missed').length,
-  });
+  const { editingBenefit, isModalOpen, handleEdit, handleClose } = useEditModal();
 
   const benefitsByCard = cards.map(card => ({
     card,
@@ -82,7 +62,7 @@ export function Dashboard({
           <div key={card.id} className="mb-8">
             <CardHeader 
               card={card} 
-              stats={getCardStats(cardBenefits)}
+              stats={calculateStats(cardBenefits)}
               allBenefits={cardAllBenefits}
               onUpdateBenefit={onToggleIgnored}
             />
@@ -102,8 +82,8 @@ export function Dashboard({
       <EditModal
         benefit={editingBenefit}
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSave={handleSave}
+        onClose={handleClose}
+        onSave={onUpdateBenefit}
       />
     </div>
   );

@@ -1,5 +1,5 @@
 import { getBenefits, getBenefitById, updateBenefit } from '../models/storage';
-import { calculateBenefitStatus } from '../utils/dates';
+import { calculateBenefitStatus, calculateStats } from '@shared/utils';
 
 export function updateBenefitUsage(
   id: string,
@@ -49,13 +49,10 @@ export function toggleActivation(id: string) {
 
 export function getStats() {
   const benefits = getBenefits();
+  const stats = calculateStats(benefits);
   
   return {
     totalBenefits: benefits.length,
-    totalValue: benefits.reduce((sum, b) => sum + b.creditAmount, 0),
-    usedValue: benefits.reduce((sum, b) => sum + b.currentUsed, 0),
-    completedCount: benefits.filter(b => b.status === 'completed').length,
-    pendingCount: benefits.filter(b => b.status === 'pending').length,
-    missedCount: benefits.filter(b => b.status === 'missed').length
+    ...stats
   };
 }

@@ -1,16 +1,10 @@
 import { useState } from 'react';
-import type { CreditCard, Benefit } from '../types';
+import type { CreditCard, Benefit, CardStats } from '../types';
 import { api } from '../api/client';
 
 interface CardHeaderProps {
   card: CreditCard;
-  stats?: {
-    totalValue: number;
-    usedValue: number;
-    completedCount: number;
-    pendingCount: number;
-    missedCount: number;
-  };
+  stats?: CardStats;
   allBenefits: Benefit[];
   onUpdateBenefit: (id: string, data: { ignored: boolean }) => void;
 }

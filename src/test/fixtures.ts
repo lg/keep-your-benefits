@@ -1,7 +1,7 @@
-import type { BenefitsStaticData, UserBenefitsData } from '../models/types';
+import type { BenefitsStaticData, UserBenefitsData, CreditCard, Benefit, Stats } from '../models/types';
 
 // Re-export types that tests need
-export type { BenefitsStaticData, UserBenefitsData } from '../models/types';
+export type { BenefitsStaticData, UserBenefitsData, CreditCard, Benefit, Stats } from '../models/types';
 
 export const staticData: BenefitsStaticData = {
   cards: [
@@ -139,45 +139,11 @@ export const emptyUserData: UserBenefitsData = {
   benefits: {}
 };
 
-// API response types for tests
+// API response type for tests
 export interface ApiResponse<T> {
   success: boolean;
   data?: T;
   error?: string;
 }
 
-export interface CardResponse {
-  id: string;
-  name: string;
-  annualFee: number;
-  resetBasis: string;
-  color: string;
-}
-
-export interface BenefitResponse {
-  id: string;
-  cardId: string;
-  name: string;
-  shortDescription: string;
-  fullDescription: string;
-  creditAmount: number;
-  currentUsed: number;
-  resetFrequency: string;
-  activationRequired: boolean;
-  activationAcknowledged: boolean;
-  startDate: string;
-  endDate: string;
-  notes: string;
-  status: string;
-  category: string;
-  ignored: boolean;
-}
-
-export interface StatsResponse {
-  totalBenefits: number;
-  totalValue: number;
-  usedValue: number;
-  completedCount: number;
-  pendingCount: number;
-  missedCount: number;
-}
+// Use CreditCard, Benefit, Stats from shared types instead of CardResponse, BenefitResponse, StatsResponse

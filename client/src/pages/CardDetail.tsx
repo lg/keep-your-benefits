@@ -1,8 +1,9 @@
-import { useState } from 'react';
 import type { Benefit, CreditCard } from '../types';
 import { BenefitCard } from '../components/BenefitCard';
 import { CardHeader } from '../components/CardHeader';
 import { EditModal } from '../components/EditModal';
+import { useEditModal } from '../hooks/useEditModal';
+import { calculateStats } from '@shared/utils';
 
 interface CardDetailProps {
   card: CreditCard;
@@ -21,28 +22,7 @@ export function CardDetail ({
   onUpdateBenefit,
   onToggleIgnored
 }: CardDetailProps) {
-  const [editingBenefit, setEditingBenefit] = useState<Benefit | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-
-  const stats = {
-    totalValue: benefits.reduce((sum, b) => sum + b.creditAmount, 0),
-    usedValue: benefits.reduce((sum, b) => sum + b.currentUsed, 0),
-    completedCount: benefits.filter(b => b.status === 'completed').length,
-    pendingCount: benefits.filter(b => b.status === 'pending').length,
-    missedCount: benefits.filter(b => b.status === 'missed').length,
-  };
-
-  const handleEdit = (benefit: Benefit) => {
-    setEditingBenefit(benefit);
-    setIsModalOpen(true);
-  };
-
-  const handleSave = (
-    id: string,
-    data: { notes: string; ignored?: boolean; activationAcknowledged?: boolean; periods?: Record<string, number> }
-  ) => {
-    onUpdateBenefit(id, data);
-  };
+  const { editingBenefit, isModalOpen, handleEdit, handleClose } = useEditModal();
 
   return (
     <div>
@@ -55,7 +35,7 @@ export function CardDetail ({
 
       <CardHeader 
         card={card} 
-        stats={stats} 
+        stats={calculateStats(benefits)} 
         allBenefits={allBenefits}
         onUpdateBenefit={onToggleIgnored}
       />
@@ -73,8 +53,8 @@ export function CardDetail ({
       <EditModal
         benefit={editingBenefit}
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSave={handleSave}
+        onClose={handleClose}
+        onSave={onUpdateBenefit}
       />
     </div>
   );
