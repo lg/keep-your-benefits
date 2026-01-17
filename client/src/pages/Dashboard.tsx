@@ -22,7 +22,7 @@ export function Dashboard({
   onUpdateBenefit,
   onToggleIgnored
 }: DashboardProps) {
-  const { editingBenefit, isModalOpen, handleEdit, handleClose } = useEditModal();
+  const { editingBenefit, isModalOpen, initialPeriodId, handleEdit, handleEditPeriod, handleClose } = useEditModal();
 
   const benefitsByCard = cards.map(card => ({
     card,
@@ -72,6 +72,7 @@ export function Dashboard({
                   key={benefit.id}
                   benefit={benefit}
                   onEdit={handleEdit}
+                  onSegmentEdit={handleEditPeriod}
                 />
               ))}
             </div>
@@ -84,6 +85,7 @@ export function Dashboard({
         isOpen={isModalOpen}
         onClose={handleClose}
         onSave={onUpdateBenefit}
+        initialPeriodId={initialPeriodId}
       />
     </div>
   );

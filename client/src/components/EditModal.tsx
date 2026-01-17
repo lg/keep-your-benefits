@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, type MouseEvent, type KeyboardEvent } from 'react';
+import { useState, useEffect, useRef, useLayoutEffect, type MouseEvent, type KeyboardEvent } from 'react';
 import type { Benefit } from '../types';
 
 interface EditModalProps {
@@ -6,15 +6,18 @@ interface EditModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (id: string, data: { notes: string; ignored?: boolean; activationAcknowledged?: boolean; periods?: Record<string, number> }) => void;
+  initialPeriodId?: string;
 }
 
-export function EditModal({ benefit, isOpen, onClose, onSave }: EditModalProps) {
+export function EditModal({ benefit, isOpen, onClose, onSave, initialPeriodId }: EditModalProps) {
   const [notes, setNotes] = useState('');
   const [ignored, setIgnored] = useState(false);
   const [activationAcknowledged, setActivationAcknowledged] = useState(false);
   const [periodUsed, setPeriodUsed] = useState<Record<string, string>>({});
   const [selectedPeriodId, setSelectedPeriodId] = useState<string>('');
   const periodTabsRef = useRef<HTMLDivElement | null>(null);
+  const [visiblePeriods, setVisiblePeriods] = useState<{ id: string }[]>([]);
+  const [targetPeriodId, setTargetPeriodId] = useState<string>('');
 
   useEffect(() => {
     if (benefit) {
@@ -28,20 +31,48 @@ export function EditModal({ benefit, isOpen, onClose, onSave }: EditModalProps) 
       setPeriodUsed(nextPeriodUsed ?? {});
 
       const now = new Date();
-      const visiblePeriods = (benefit.periods ?? [])
+      const periods = (benefit.periods ?? [])
         .filter(period => new Date(period.startDate) <= now)
         .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
-      const currentPeriod = visiblePeriods.find(period => {
-        const start = new Date(period.startDate);
-        const end = new Date(period.endDate);
-        return now >= start && now <= end;
-      });
-      setSelectedPeriodId(currentPeriod?.id ?? visiblePeriods[0]?.id ?? '');
-      if (periodTabsRef.current) {
-        periodTabsRef.current.scrollLeft = periodTabsRef.current.scrollWidth;
-      }
+      setVisiblePeriods(periods);
+
+      const periodId = initialPeriodId && periods.some(p => p.id === initialPeriodId)
+        ? initialPeriodId
+        : (() => {
+            const currentPeriod = periods.find(period => {
+              const start = new Date(period.startDate);
+              const end = new Date(period.endDate);
+              return now >= start && now <= end;
+            });
+            return currentPeriod?.id ?? periods[0]?.id ?? '';
+          })();
+
+      setSelectedPeriodId(periodId);
+      setTargetPeriodId(periodId);
     }
-  }, [benefit]);
+  }, [benefit, initialPeriodId]);
+
+  useLayoutEffect(() => {
+    if (!periodTabsRef.current || !targetPeriodId || visiblePeriods.length === 0) return;
+    const container = periodTabsRef.current;
+    container.scrollLeft = container.scrollWidth;
+  }, [targetPeriodId, visiblePeriods, isOpen]);
+
+  useEffect(() => {
+    if (!periodTabsRef.current || !targetPeriodId || visiblePeriods.length === 0) return;
+    const container = periodTabsRef.current;
+    const targetIndex = visiblePeriods.findIndex(p => p.id === targetPeriodId);
+    if (targetIndex >= 0) {
+      const timer = setTimeout(() => {
+        const tabElements = container.querySelectorAll('button');
+        const targetTab = tabElements[targetIndex] as HTMLElement;
+        if (targetTab) {
+          targetTab.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+        }
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [targetPeriodId, visiblePeriods, isOpen]);
 
   if (!isOpen || !benefit) return null;
 
@@ -81,10 +112,10 @@ export function EditModal({ benefit, isOpen, onClose, onSave }: EditModalProps) 
 
   const now = new Date();
   const periodEntries = benefit.periods ?? [];
-  const visiblePeriods = periodEntries
+  const displayPeriods = periodEntries
     .filter(period => new Date(period.startDate) <= now)
     .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
-  const selectedPeriod = visiblePeriods.find(period => period.id === selectedPeriodId) ?? visiblePeriods[0];
+  const selectedPeriod = displayPeriods.find(period => period.id === selectedPeriodId) ?? displayPeriods[0];
   const selectedPeriodIdValue = selectedPeriod?.id ?? '';
 
   const formatPeriodLabel = (startDate: string, endDate: string) => {
@@ -106,7 +137,7 @@ export function EditModal({ benefit, isOpen, onClose, onSave }: EditModalProps) 
       <div className="modal-content" role="dialog" aria-modal="true">
         <h2 className="text-xl font-bold mb-4">Edit {benefit.name}</h2>
         
-        {visiblePeriods.length > 0 && (
+        {displayPeriods.length > 0 && (
           <div className="mb-4">
             <div className="text-sm text-slate-400 mb-2">Segment Spend</div>
             <div className="grid gap-3">
@@ -116,7 +147,7 @@ export function EditModal({ benefit, isOpen, onClose, onSave }: EditModalProps) 
                   ref={periodTabsRef}
                   className="flex gap-2 overflow-x-auto pb-1 scrollbar-none"
                 >
-                  {visiblePeriods.map(period => {
+                  {displayPeriods.map(period => {
                     const isSelected = period.id === selectedPeriodIdValue;
                     const usedValue = parseFloat(periodUsed[period.id] ?? '0') || 0;
                     const isComplete = usedValue >= periodValue;

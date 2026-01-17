@@ -23,9 +23,10 @@ function StatusBadge({ status }: StatusBadgeProps) {
 interface BenefitCardProps {
   benefit: Benefit;
   onEdit: (benefit: Benefit) => void;
+  onSegmentEdit?: (benefit: Benefit, periodId: string) => void;
 }
 
-export function BenefitCard({ benefit, onEdit }: BenefitCardProps) {
+export function BenefitCard({ benefit, onEdit, onSegmentEdit }: BenefitCardProps) {
   const daysUntilExpiry = getDaysUntilExpiry(benefit.endDate);
   const overallTimeProgress = getTimeProgress(benefit.startDate, benefit.endDate);
 
@@ -116,7 +117,13 @@ export function BenefitCard({ benefit, onEdit }: BenefitCardProps) {
             ${benefit.currentUsed.toFixed(0)} / ${benefit.creditAmount}
           </span>
         </div>
-        <ProgressBar segments={getSegments()} segmentsCount={segmentsCount()} />
+        <ProgressBar segments={getSegments()} segmentsCount={segmentsCount()} onSegmentClick={segment => {
+  if (segment.id === 'overall') {
+    onEdit(benefit);
+  } else if (onSegmentEdit) {
+    onSegmentEdit(benefit, segment.id);
+  }
+}} />
       </div>
 
       <div className="flex justify-between items-center text-sm">

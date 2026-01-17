@@ -22,7 +22,7 @@ export function CardDetail ({
   onUpdateBenefit,
   onToggleIgnored
 }: CardDetailProps) {
-  const { editingBenefit, isModalOpen, handleEdit, handleClose } = useEditModal();
+  const { editingBenefit, isModalOpen, initialPeriodId, handleEdit, handleEditPeriod, handleClose } = useEditModal();
 
   return (
     <div>
@@ -42,11 +42,12 @@ export function CardDetail ({
 
       <div className="grid gap-4 md:grid-cols-2">
         {benefits.map(benefit => (
-          <BenefitCard
-            key={benefit.id}
-            benefit={benefit}
-            onEdit={handleEdit}
-          />
+<BenefitCard
+              key={benefit.id}
+              benefit={benefit}
+              onEdit={handleEdit}
+              onSegmentEdit={handleEditPeriod}
+            />
         ))}
       </div>
 
@@ -55,6 +56,7 @@ export function CardDetail ({
         isOpen={isModalOpen}
         onClose={handleClose}
         onSave={onUpdateBenefit}
+        initialPeriodId={initialPeriodId}
       />
     </div>
   );
