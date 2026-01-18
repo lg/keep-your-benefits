@@ -14,16 +14,16 @@ body {
   @apply bg-emerald-500;
 }
 
-.progress-segment.pending {
+.progress-segment.partial {
   @apply bg-amber-400;
+}
+
+.progress-segment.pending {
+  @apply bg-slate-600;
 }
 
 .progress-segment.missed {
   @apply bg-red-500;
-}
-
-.progress-segment.future {
-  @apply bg-slate-700;
 }
 
 .benefit-card {

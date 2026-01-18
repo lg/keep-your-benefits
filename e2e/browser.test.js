@@ -196,12 +196,7 @@ test.describe('Transaction-based Progress', () => {
           'amex-uber-cash': {
             activationAcknowledged: true,
             ignored: false,
-            periods: {
-              'amex-uber-cash-2026-01': {
-                usedAmount: 150,
-                transactions: []
-              }
-            }
+            transactions: []
           }
         }
       };
@@ -211,7 +206,8 @@ test.describe('Transaction-based Progress', () => {
 
     const uberCard = page.locator('.benefit-card', { hasText: 'Uber Cash' });
     await expect(uberCard.locator('.progress-segment.completed')).toHaveCount(0);
-    await expect(uberCard.locator('.progress-segment.pending')).toHaveCount(1);
+    await expect(uberCard.locator('.progress-segment.missed')).toHaveCount(0);
+    await expect(uberCard.locator('.progress-segment.partial')).toHaveCount(0);
   });
 });
 
@@ -242,7 +238,7 @@ test.describe('Past Year Segments', () => {
     await page.reload();
   });
 
-  test('all segments have color (no pending/future) when viewing a past year', async ({ page }) => {
+  test('all segments have color (no pending) when viewing a past year', async ({ page }) => {
     await page.evaluate(() => {
       const userData = {
         benefits: {
@@ -296,7 +292,6 @@ test.describe('Past Year Segments', () => {
     await page.waitForLoadState('domcontentloaded');
 
     await expect(page.locator('.progress-segment.pending')).toHaveCount(0);
-    await expect(page.locator('.progress-segment.future')).toHaveCount(0);
 
     const allSegments = page.locator('.progress-segment');
     const segmentCount = await allSegments.count();
@@ -395,7 +390,6 @@ test.describe('Past Year Segments', () => {
     const lululemonCard = page.locator('.benefit-card', { hasText: 'lululemon Credit' });
     await expect(lululemonCard.locator('.progress-segment.completed')).toHaveCount(1);
     await expect(lululemonCard.locator('.progress-segment.missed')).toHaveCount(0);
-    await expect(lululemonCard.locator('.progress-segment.pending')).toHaveCount(0);
-    await expect(lululemonCard.locator('.progress-segment.future')).toHaveCount(3);
+    await expect(lululemonCard.locator('.progress-segment.pending')).toHaveCount(3);
   });
 });

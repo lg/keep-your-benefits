@@ -120,7 +120,7 @@ function CardHeaderComponent({ card, stats, allBenefits, onUpdateBenefit, onImpo
             <span className="text-emerald-400">
               YTD: {stats.ytdCompletedPeriods}/{stats.ytdTotalPeriods}
             </span>
-            <span className="text-amber-400">◐ {stats.pendingCount} pending</span>
+            <span className="text-slate-400">◐ {stats.pendingCount} pending</span>
             <span className="text-red-400">✗ {stats.missedCount} missed</span>
           </div>
         </div>

@@ -34,7 +34,7 @@ export function getTimeProgress(startDate: string, endDate: string): number {
 export interface BenefitUsageSnapshot {
   periods: BenefitPeriodWithUsage[];
   currentUsed: number;
-  status: 'pending' | 'completed' | 'missed';
+  status: 'pending' | 'partial' | 'completed' | 'missed';
   yearTransactions: StoredTransaction[];
   claimedElsewhereYear?: number;
   effectiveStartDate: string;
@@ -50,7 +50,7 @@ export interface BenefitPeriodWithUsage {
   endDate: string;
   usedAmount: number;
   transactions: StoredTransaction[];
-  status: 'pending' | 'completed' | 'missed' | 'future';
+  status: 'pending' | 'partial' | 'completed' | 'missed';
   isCurrent: boolean;
   timeProgress: number;
   daysLeft: number;
@@ -88,7 +88,7 @@ function deriveSegmentStatus(
   referenceDate: Date,
   isPastYear: boolean,
   isPastYearView: boolean
-): { status: 'pending' | 'completed' | 'missed' | 'future'; isCurrent: boolean; timeProgress?: number; daysLeft?: number } {
+): { status: 'pending' | 'partial' | 'completed' | 'missed'; isCurrent: boolean; timeProgress?: number; daysLeft?: number } {
   const start = new Date(startDate);
   const end = new Date(endDate);
   const isFuture = referenceDate < start;
@@ -97,12 +97,11 @@ function deriveSegmentStatus(
   const completionEpsilon = 0.01;
   const isComplete = usedAmount + completionEpsilon >= segmentValue;
 
-
-  let status: 'pending' | 'completed' | 'missed' | 'future';
-  if (isFuture) {
-    status = isPastYearView ? 'missed' : 'future';
-  } else if (isComplete) {
+  let status: 'pending' | 'partial' | 'completed' | 'missed';
+  if (isComplete) {
     status = 'completed';
+  } else if (usedAmount > 0) {
+    status = 'partial';
   } else if (isPast || isPastYear) {
     status = 'missed';
   } else {
@@ -231,19 +230,23 @@ export function buildBenefitUsageSnapshot(
 
   const currentUsed = periods.reduce((sum, p) => sum + p.usedAmount, 0);
 
-  let overallStatus: 'pending' | 'completed' | 'missed';
+   let overallStatus: 'pending' | 'partial' | 'completed' | 'missed';
   if (claimedElsewhereYear) {
     overallStatus = 'completed';
   } else {
-    const hasMissed = periods.some(p => p.status === 'missed');
-    const allComplete = periods.every(p => p.status === 'completed');
-    if (allComplete) {
-      overallStatus = 'completed';
-    } else if (hasMissed) {
-      overallStatus = 'missed';
-    } else {
-      overallStatus = 'pending';
-    }
+     const hasMissed = periods.some(p => p.status === 'missed');
+     const allComplete = periods.every(p => p.status === 'completed');
+     const hasPartial = periods.some(p => p.status === 'partial');
+     if (allComplete) {
+       overallStatus = 'completed';
+     } else if (hasMissed) {
+       overallStatus = 'missed';
+     } else if (hasPartial) {
+       overallStatus = 'partial';
+     } else {
+       overallStatus = 'pending';
+     }
+
   }
 
   if (!definition.periods || definition.periods.length === 0) {

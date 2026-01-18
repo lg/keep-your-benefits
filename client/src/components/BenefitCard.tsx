@@ -4,12 +4,13 @@ import { ProgressBar } from './ProgressBar';
 import { buildBenefitUsageSnapshot, buildProgressSegments, formatDate } from '../utils/dateUtils';
 
 interface StatusBadgeProps {
-  status: 'pending' | 'completed' | 'missed';
+  status: 'pending' | 'partial' | 'completed' | 'missed';
 }
 
 function StatusBadge({ status }: StatusBadgeProps) {
   const colors = {
-    pending: 'bg-amber-400 text-slate-900',
+    pending: 'bg-slate-600 text-white',
+    partial: 'bg-amber-400 text-slate-900',
     completed: 'bg-emerald-500 text-white',
     missed: 'bg-red-500 text-white',
   };

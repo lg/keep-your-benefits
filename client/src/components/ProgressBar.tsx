@@ -12,10 +12,10 @@ const segmentClass = (status: ProgressSegment['status']) => {
   switch (status) {
     case 'completed':
       return 'progress-segment completed';
+    case 'partial':
+      return 'progress-segment partial';
     case 'missed':
       return 'progress-segment missed';
-    case 'future':
-      return 'progress-segment future';
     default:
       return 'progress-segment pending';
   }
@@ -26,7 +26,7 @@ function ProgressBarComponent({ segments, segmentsCount, onSegmentClick }: Progr
     <div className="flex gap-1">
       {Array.from({ length: segmentsCount }).map((_, index) => {
         const segment = segments[index];
-        const isClickable = segment && segment.status !== 'future' && !!onSegmentClick;
+        const isClickable = segment && segment.status !== 'pending' && !!onSegmentClick;
         return (
           <div
             key={index}

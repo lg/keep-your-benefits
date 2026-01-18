@@ -134,7 +134,7 @@ describe('buildBenefitUsageSnapshot', () => {
   });
 
   describe('current year with partial usage', () => {
-    it('shows completed and future status for periods with different start dates', () => {
+    it('shows completed and pending status for periods with different start dates', () => {
       const now = new Date();
       const currentYear = now.getUTCFullYear();
       const yearStart = new Date(Date.UTC(currentYear, 0, 1));
@@ -164,9 +164,9 @@ describe('buildBenefitUsageSnapshot', () => {
 
       expect(snapshot.periods).toHaveLength(4);
       expect(snapshot.periods[0].status).toBe('completed');
-      expect(snapshot.periods[1].status).toBe('future');
-      expect(snapshot.periods[2].status).toBe('future');
-      expect(snapshot.periods[3].status).toBe('future');
+      expect(snapshot.periods[1].status).toBe('pending');
+      expect(snapshot.periods[2].status).toBe('pending');
+      expect(snapshot.periods[3].status).toBe('pending');
       expect(snapshot.currentUsed).toBe(100);
     });
   });
@@ -226,7 +226,7 @@ describe('buildBenefitUsageSnapshot', () => {
   });
 
   describe('future year', () => {
-    it('shows future status for future year periods', () => {
+    it('shows pending status for future year periods', () => {
       const now = new Date();
       const futureYear = now.getUTCFullYear() + 1;
       const yearStart = new Date(Date.UTC(futureYear, 0, 1));
@@ -251,8 +251,8 @@ describe('buildBenefitUsageSnapshot', () => {
       const snapshot = buildBenefitUsageSnapshot(definition, userState, futureYear);
 
       expect(snapshot.periods).toHaveLength(2);
-      expect(snapshot.periods[0].status).toBe('future');
-      expect(snapshot.periods[1].status).toBe('future');
+      expect(snapshot.periods[0].status).toBe('pending');
+      expect(snapshot.periods[1].status).toBe('pending');
     });
   });
 
@@ -285,7 +285,7 @@ describe('buildBenefitUsageSnapshot', () => {
 
       expect(snapshot.periods).toHaveLength(2);
       expect(snapshot.periods[0].status).toBe('completed');
-      expect(snapshot.periods[1].status).toBe('future');
+      expect(snapshot.periods[1].status).toBe('pending');
       expect(snapshot.periods[0].usedAmount).toBe(300);
       expect(snapshot.periods[1].usedAmount).toBe(0);
     });
@@ -324,7 +324,7 @@ describe('buildProgressSegments', () => {
     expect(segments[0].id).toBe('h1');
     expect(segments[0].status).toBe('completed');
     expect(segments[1].id).toBe('h2');
-    expect(segments[1].status).toBe('future');
+    expect(segments[1].status).toBe('pending');
   });
 
   it('generates single segment for non-period benefits', () => {
@@ -394,7 +394,7 @@ describe('calculateStats', () => {
       expect(stats.missedCount).toBe(0);
     });
 
-    it('does not count future benefits in ytd totals', () => {
+    it('does not count pending benefits in ytd totals', () => {
       const now = new Date();
       const futureStart = new Date(now);
       futureStart.setDate(futureStart.getDate() + 60);

@@ -7,7 +7,7 @@ export interface CreditCard {
   color: string;
 }
 
-export type BenefitStatus = 'pending' | 'completed' | 'missed' | 'future';
+export type BenefitStatus = 'pending' | 'partial' | 'completed' | 'missed';
 
 export interface StoredTransaction {
   date: string;
@@ -106,7 +106,7 @@ export interface CardStats {
 // Progress segment type used by UI components
 export interface ProgressSegment {
   id: string;
-  status: 'pending' | 'completed' | 'missed' | 'future';
+  status: 'pending' | 'partial' | 'completed' | 'missed';
   label?: string;
   timeProgress?: number;
   startDate?: string;
