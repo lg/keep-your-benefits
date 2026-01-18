@@ -5,7 +5,6 @@ export type {
   BenefitPeriod,
   BenefitDefinition,
   Benefit,
-  UpdateBenefitRequest,
   Stats,
   CardStats,
   ProgressSegment,

@@ -18,10 +18,14 @@ export function parseAmexCsv(csvContent: string): ParsedTransaction[] {
       continue;
     }
 
+    const description = row['Description'] ?? '';
+    const rawAmount = parseAmount(row['Amount'] ?? '0');
+    const amount = rawAmount < 0 ? Math.abs(rawAmount) : rawAmount;
+
     transactions.push({
       date,
-      description: row['Description'] ?? '',
-      amount: parseAmount(row['Amount'] ?? '0'),
+      description,
+      amount,
       extendedDetails: row['Extended Details'],
       category: row['Category'],
       reference: row['Reference']?.replace(/'/g, ''),
@@ -42,11 +46,6 @@ export function extractAmexCredits(
   transactions: ParsedTransaction[]
 ): ParsedTransaction[] {
   return transactions.filter((t) => {
-    // Credits have negative amounts in Amex
-    if (t.amount >= 0) {
-      return false;
-    }
-
     const descLower = t.description.toLowerCase();
     const detailsLower = t.extendedDetails?.toLowerCase() ?? '';
     const combinedText = `${descLower} ${detailsLower}`.trim();

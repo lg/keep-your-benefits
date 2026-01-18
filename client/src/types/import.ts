@@ -28,9 +28,8 @@ export interface ImportResult {
 }
 
 export interface ImportUsage {
-  currentUsed: number;
   periods?: Record<string, { usedAmount: number; transactions?: StoredTransaction[] }>;
   transactions?: StoredTransaction[];
 }
 
-export type CardType = 'amex-platinum' | 'chase-sapphire-reserve';
+export type CardType = 'amex-platinum';

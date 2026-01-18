@@ -38,22 +38,9 @@ const AMEX_PLATINUM_PATTERNS: BenefitPattern[] = [
   },
 ];
 
-// Chase Sapphire Reserve credit patterns (for future use)
-const CHASE_SAPPHIRE_PATTERNS: BenefitPattern[] = [
-  { pattern: /travel.*credit/i, benefitId: 'csr-travel-credit' },
-  { pattern: /doordash/i, benefitId: 'csr-doordash' },
-  { pattern: /lyft/i, benefitId: 'csr-lyft' },
-  { pattern: /peloton/i, benefitId: 'csr-peloton' },
-  { pattern: /stubhub|viagogo/i, benefitId: 'csr-stubhub' },
-  { pattern: /exclusive.*table|dining.*credit/i, benefitId: 'csr-dining-exclusive-tables' },
-  { pattern: /edit.*hotel|hotel.*edit/i, benefitId: 'csr-edit-hotel' },
-  { pattern: /global.*entry|tsa.*precheck|nexus/i, benefitId: 'csr-global-entry' },
-];
-
 // Map card types to their patterns
 const CARD_PATTERNS: Record<CardType, BenefitPattern[]> = {
   'amex-platinum': AMEX_PLATINUM_PATTERNS,
-  'chase-sapphire-reserve': CHASE_SAPPHIRE_PATTERNS,
 };
 
 /**
@@ -148,15 +135,15 @@ export function matchCredits(
 
 /**
  * Aggregate matched credits into usage amounts per benefit and period
- * Returns a map of benefitId -> { currentUsed, periods?, transactions? }
+ * Returns a map of benefitId -> { periods?, transactions? }
  */
 export function aggregateCredits(
   matchedCredits: MatchedCredit[],
   benefits: BenefitDefinition[]
-): Map<string, { currentUsed: number; periods?: Record<string, { usedAmount: number; transactions?: { date: string; description: string; amount: number }[] }>; transactions?: { date: string; description: string; amount: number }[] }> {
+): Map<string, { periods?: Record<string, { usedAmount: number; transactions?: { date: string; description: string; amount: number }[] }>; transactions?: { date: string; description: string; amount: number }[] }> {
   const result = new Map<
     string,
-    { currentUsed: number; periods?: Record<string, { usedAmount: number; transactions?: { date: string; description: string; amount: number }[] }>; transactions?: { date: string; description: string; amount: number }[] }
+    { periods?: Record<string, { usedAmount: number; transactions?: { date: string; description: string; amount: number }[] }>; transactions?: { date: string; description: string; amount: number }[] }
   >();
 
   // Create benefit lookup for max amounts
@@ -170,7 +157,6 @@ export function aggregateCredits(
 
     const benefit = benefitMap.get(credit.benefitId);
     const existing = result.get(credit.benefitId) ?? {
-      currentUsed: 0,
       periods: undefined,
       transactions: undefined,
     };
@@ -191,11 +177,8 @@ export function aggregateCredits(
       existing.periods[credit.periodId].usedAmount += credit.creditAmount;
       existing.periods[credit.periodId].transactions?.push(storedTransaction);
 
-      // Also update the total currentUsed
-      existing.currentUsed += credit.creditAmount;
     } else {
       // Non-period benefit or no period matched
-      existing.currentUsed += credit.creditAmount;
       existing.transactions = existing.transactions ?? [];
       existing.transactions.push(storedTransaction);
     }
@@ -207,9 +190,6 @@ export function aggregateCredits(
   for (const [benefitId, usage] of result) {
     const benefit = benefitMap.get(benefitId);
     if (!benefit) continue;
-
-    // Cap total
-    usage.currentUsed = Math.min(usage.currentUsed, benefit.creditAmount);
 
     // Cap per-period amounts
     if (usage.periods && benefit.periods) {

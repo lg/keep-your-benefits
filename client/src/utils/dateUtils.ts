@@ -1,2 +1,9 @@
 // Re-export shared utilities
-export { formatDate, getDaysUntilExpiry, getTimeProgress } from '@shared/utils';
+export { 
+  formatDate, 
+  getDaysUntilExpiry, 
+  getTimeProgress,
+  buildBenefitUsageSnapshot,
+  buildProgressSegments,
+  getReferenceDate,
+} from '@shared/utils';

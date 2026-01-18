@@ -9,7 +9,7 @@ This document provides instructions for AI agents working on the Use Your Benefi
 3. **Static JSON for definitions** - Benefit definitions stored in `client/public/benefits.json`
 4. **localStorage for user data** - User state (usage, activation, ignored) stored in browser localStorage
 5. **UTC timezone** - All date handling assumes UTC
-6. **Calendar year for Amex, anniversary for Chase** - Reset dates vary by card
+6. **Calendar year resets** - All benefits reset on a calendar year basis
 7. **Single package.json** - Keep dependencies and scripts at the repo root
 8. **No automatic commits** - Never commit changes unless explicitly instructed by the user
 9. **Git commands require explicit permission** - Never run `git commit`, `git push`, or any git command that modifies the repository without the user explicitly asking you to do so

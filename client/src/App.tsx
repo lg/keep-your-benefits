@@ -106,7 +106,7 @@ function App() {
     const currentBenefit = allBenefits.find(b => b.id === id);
     const newIgnored = !currentBenefit?.ignored;
 
-    const updated = benefitsService.updateBenefit(id, definition, { ignored: newIgnored }, selectedYear);
+    const updated = benefitsService.updateBenefit(id, definition, newIgnored, selectedYear);
 
     setAllBenefits(prev => prev.map(b => b.id === id ? updated : b));
     if (newIgnored) {

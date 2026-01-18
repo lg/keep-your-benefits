@@ -13,7 +13,6 @@ test.describe('Dashboard', () => {
 
   test('shows all cards', async ({ page }) => {
     await expect(page.getByRole('button', { name: 'American Express Platinum' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Chase Sapphire Reserve' })).toBeVisible();
   });
 
   test('shows summary stats', async ({ page }) => {
@@ -24,7 +23,6 @@ test.describe('Dashboard', () => {
     await expect(page.getByRole('heading', { name: 'Uber Cash' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Saks Fifth Avenue' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Airline Fee Credit' })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Travel Credit' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Global Entry/TSA PreCheck' }).first()).toBeVisible();
   });
 });
@@ -111,50 +109,13 @@ test.describe('Transaction-based Progress', () => {
     await page.reload();
   });
 
-  test('past period without transactions shows as missed', async ({ page }) => {
-    await page.evaluate(() => {
-      const userData = {
-        benefits: {
-          'csr-lyft': {
-            currentUsed: 0,
-            activationAcknowledged: true,
-            status: 'pending',
-            ignored: false,
-            periods: {
-              'csr-lyft-2025-12': {
-                usedAmount: 0,
-                status: 'pending',
-                transactions: []
-              }
-            }
-          }
-        }
-      };
-      localStorage.setItem('use-your-benefits', JSON.stringify(userData));
-    });
-    await page.reload();
-
-    const lyftCard = page.locator('.benefit-card', { hasText: 'Lyft Credit' });
-    await expect(lyftCard.locator('.progress-segment.missed')).toHaveCount(6);
-    await expect(lyftCard.locator('.progress-segment.completed')).toHaveCount(0);
-  });
-
   test('current period without transactions shows as pending', async ({ page }) => {
     await page.evaluate(() => {
       const userData = {
         benefits: {
-          'csr-lyft': {
-            currentUsed: 0,
+          'amex-uber-one': {
             activationAcknowledged: true,
-            status: 'pending',
-            ignored: false,
-            periods: {
-              'csr-lyft-2026-01': {
-                usedAmount: 0,
-                status: 'pending',
-                transactions: []
-              }
-            }
+            ignored: false
           }
         }
       };
@@ -162,29 +123,21 @@ test.describe('Transaction-based Progress', () => {
     });
     await page.reload();
 
-    const lyftCard = page.locator('.benefit-card', { hasText: 'Lyft Credit' });
-    await expect(lyftCard.locator('.progress-segment.pending')).toHaveCount(1);
-    await expect(lyftCard.locator('.progress-segment.completed')).toHaveCount(0);
+    const uberCard = page.locator('.benefit-card', { hasText: 'Uber One Credit' });
+    await expect(uberCard.locator('.progress-segment.pending')).toHaveCount(1);
+    await expect(uberCard.locator('.progress-segment.completed')).toHaveCount(0);
   });
 
   test('period with transactions summing to full amount shows as completed', async ({ page }) => {
     await page.evaluate(() => {
       const userData = {
         benefits: {
-          'csr-lyft': {
-            currentUsed: 0,
+          'amex-uber-one': {
             activationAcknowledged: true,
-            status: 'pending',
             ignored: false,
-            periods: {
-              'csr-lyft-2026-01': {
-                usedAmount: 0,
-                status: 'pending',
-                transactions: [
-                  { date: '2026-01-15', description: 'Lyft ride', amount: 10 }
-                ]
-              }
-            }
+            transactions: [
+              { date: '2026-01-15', description: 'Uber One membership', amount: 120 }
+            ]
           }
         }
       };
@@ -192,26 +145,17 @@ test.describe('Transaction-based Progress', () => {
     });
     await page.reload();
 
-    const lyftCard = page.locator('.benefit-card', { hasText: 'Lyft Credit' });
-    await expect(lyftCard.locator('.progress-segment.completed')).toHaveCount(1);
+    const uberCard = page.locator('.benefit-card', { hasText: 'Uber One Credit' });
+    await expect(uberCard.locator('.progress-segment.completed')).toHaveCount(1);
   });
 
   test('stale usedAmount is ignored without transactions', async ({ page }) => {
     await page.evaluate(() => {
       const userData = {
         benefits: {
-          'csr-lyft': {
-            currentUsed: 100,
+          'amex-uber-one': {
             activationAcknowledged: true,
-            status: 'completed',
-            ignored: false,
-            periods: {
-              'csr-lyft-2025-12': {
-                usedAmount: 100,
-                status: 'completed',
-                transactions: []
-              }
-            }
+            ignored: false
           }
         }
       };
@@ -219,9 +163,9 @@ test.describe('Transaction-based Progress', () => {
     });
     await page.reload();
 
-    const lyftCard = page.locator('.benefit-card', { hasText: 'Lyft Credit' });
-    await expect(lyftCard.locator('.progress-segment.completed')).toHaveCount(0);
-    await expect(lyftCard.locator('.progress-segment.missed')).toHaveCount(6);
+    const uberCard = page.locator('.benefit-card', { hasText: 'Uber One Credit' });
+    await expect(uberCard.locator('.progress-segment.completed')).toHaveCount(0);
+    await expect(uberCard.locator('.progress-segment.pending')).toHaveCount(1);
   });
 
   test('benefit with sufficient transactions shows completed segment', async ({ page }) => {
@@ -229,19 +173,11 @@ test.describe('Transaction-based Progress', () => {
       const userData = {
         benefits: {
           'amex-uber-cash': {
-            currentUsed: 0,
             activationAcknowledged: true,
-            status: 'pending',
             ignored: false,
-            periods: {
-              'amex-uber-cash-2026-01': {
-                usedAmount: 0,
-                status: 'pending',
-                transactions: [
-                  { date: '2026-01-15', description: 'Uber Eats', amount: 17 }
-                ]
-              }
-            }
+            transactions: [
+              { date: '2026-01-15', description: 'Uber Eats', amount: 17 }
+            ]
           }
         }
       };
@@ -258,14 +194,11 @@ test.describe('Transaction-based Progress', () => {
       const userData = {
         benefits: {
           'amex-uber-cash': {
-            currentUsed: 150,
             activationAcknowledged: true,
-            status: 'completed',
             ignored: false,
             periods: {
               'amex-uber-cash-2026-01': {
                 usedAmount: 150,
-                status: 'completed',
                 transactions: []
               }
             }
@@ -295,16 +228,174 @@ test.describe('Card Filtering', () => {
     await expect(page.getByText('Travel Credit')).toBeHidden();
   });
 
-  test('Chase filter shows only Chase benefits', async ({ page }) => {
-    await page.getByRole('button', { name: 'Chase' }).click();
-    await expect(page.getByText('Uber Cash')).toBeHidden();
-    await expect(page.getByText('Travel Credit')).toBeVisible();
-  });
-
-  test('All Cards shows both', async ({ page }) => {
+  test('All Cards shows all benefits', async ({ page }) => {
     await page.getByRole('button', { name: 'American' }).click();
     await page.getByRole('button', { name: 'All Cards' }).click();
     await expect(page.getByText('Uber Cash')).toBeVisible();
-    await expect(page.getByText('Travel Credit')).toBeVisible();
+  });
+});
+
+test.describe('Past Year Segments', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/');
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
+  });
+
+  test('all segments have color (no pending/future) when viewing a past year', async ({ page }) => {
+    await page.evaluate(() => {
+      const userData = {
+        benefits: {
+          'amex-resy-credit': {
+            activationAcknowledged: true,
+            ignored: false,
+            transactions: [
+              { date: '2025-02-15', description: 'Resy reservation', amount: 100 },
+              { date: '2025-05-20', description: 'Resy reservation', amount: 100 },
+              { date: '2025-08-10', description: 'Resy reservation', amount: 100 },
+              { date: '2025-11-15', description: 'Resy reservation', amount: 100 }
+            ]
+          },
+          'amex-saks': {
+            activationAcknowledged: true,
+            ignored: false,
+            transactions: [
+              { date: '2025-02-14', description: 'Shop Saks with Platinum Credit', amount: 50 },
+              { date: '2025-08-08', description: 'Platinum Saks Credit', amount: 50 }
+            ]
+          },
+          'amex-uber-one': {
+            activationAcknowledged: true,
+            ignored: false,
+            transactions: [
+              { date: '2025-06-15', description: 'Uber One membership', amount: 120 }
+            ]
+          },
+          'amex-hotel-credit': {
+            activationAcknowledged: true,
+            ignored: false,
+            transactions: [
+              { date: '2025-01-20', description: 'Hotel booking', amount: 300 },
+              { date: '2025-07-10', description: 'Hotel booking', amount: 300 }
+            ]
+          },
+          'amex-global-entry': {
+            activationAcknowledged: true,
+            ignored: false,
+            transactions: [
+              { date: '2025-01-10', description: 'Global Entry fee', amount: 120 }
+            ]
+          }
+        }
+      };
+      localStorage.setItem('use-your-benefits', JSON.stringify(userData));
+    });
+    await page.reload();
+
+    await page.getByRole('button', { name: '2025', exact: true }).click();
+    await page.waitForLoadState('domcontentloaded');
+
+    await expect(page.locator('.progress-segment.pending')).toHaveCount(0);
+    await expect(page.locator('.progress-segment.future')).toHaveCount(0);
+
+    const allSegments = page.locator('.progress-segment');
+    const segmentCount = await allSegments.count();
+    expect(segmentCount).toBeGreaterThan(0);
+
+    for (let i = 0; i < segmentCount; i++) {
+      const segment = allSegments.nth(i);
+      await expect(segment).toHaveClass(/(completed|missed)/);
+    }
+  });
+
+  test('saks shows two completed segments in 2025', async ({ page }) => {
+    await page.evaluate(() => {
+      const userData = {
+        benefits: {
+          'amex-saks': {
+            activationAcknowledged: true,
+            ignored: false,
+            transactions: [
+              { date: '2025-02-14', description: 'Shop Saks with Platinum Credit', amount: 50 },
+              { date: '2025-08-08', description: 'Platinum Saks Credit', amount: 50 }
+            ]
+          }
+        }
+      };
+      localStorage.setItem('use-your-benefits', JSON.stringify(userData));
+    });
+    await page.reload();
+
+    await page.getByRole('button', { name: '2025', exact: true }).click();
+    await page.waitForLoadState('domcontentloaded');
+
+    const saksCard = page.locator('.benefit-card', { hasText: 'Saks Fifth Avenue' });
+    await expect(saksCard.locator('.progress-segment.completed')).toHaveCount(2);
+    await expect(saksCard.locator('.progress-segment.missed')).toHaveCount(0);
+    await expect(saksCard.locator('.progress-segment.pending')).toHaveCount(0);
+  });
+
+  test('digital entertainment shows completed months except November in 2025', async ({ page }) => {
+    await page.evaluate(() => {
+      const userData = {
+        benefits: {
+          'amex-digital-entertainment': {
+            activationAcknowledged: true,
+            ignored: false,
+            transactions: [
+              { date: '2025-01-15', description: 'Platinum Digital Entertainment Credit', amount: 25 },
+              { date: '2025-02-15', description: 'Platinum Digital Entertainment Credit', amount: 25 },
+              { date: '2025-03-15', description: 'Platinum Digital Entertainment Credit', amount: 25 },
+              { date: '2025-04-15', description: 'Platinum Digital Entertainment Credit', amount: 25 },
+              { date: '2025-05-15', description: 'Platinum Digital Entertainment Credit', amount: 25 },
+              { date: '2025-06-15', description: 'Platinum Digital Entertainment Credit', amount: 25 },
+              { date: '2025-07-15', description: 'Platinum Digital Entertainment Credit', amount: 25 },
+              { date: '2025-08-15', description: 'Platinum Digital Entertainment Credit', amount: 25 },
+              { date: '2025-09-15', description: 'Platinum Digital Entertainment Credit', amount: 25 },
+              { date: '2025-10-15', description: 'Platinum Digital Entertainment Credit', amount: 25 },
+              { date: '2025-12-15', description: 'Platinum Digital Entertainment Credit', amount: 25 }
+            ]
+          }
+        }
+      };
+      localStorage.setItem('use-your-benefits', JSON.stringify(userData));
+    });
+    await page.reload();
+
+    await page.getByRole('button', { name: '2025', exact: true }).click();
+    await page.waitForLoadState('domcontentloaded');
+
+    const entertainmentCard = page.locator('.benefit-card', { hasText: 'Digital Entertainment' });
+    await expect(entertainmentCard.locator('.progress-segment.completed')).toHaveCount(11);
+    await expect(entertainmentCard.locator('.progress-segment.missed')).toHaveCount(1);
+    await expect(entertainmentCard.locator('.progress-segment.pending')).toHaveCount(0);
+  });
+
+  test('lululemon shows completed first quarter and gray remaining segments in 2026', async ({ page }) => {
+    await page.evaluate(() => {
+      const userData = {
+        benefits: {
+          'amex-lululemon': {
+            activationAcknowledged: true,
+            ignored: false,
+            transactions: [
+              { date: '2026-01-11', description: 'Platinum Lululemon Credit', amount: 75 }
+            ]
+          }
+
+        }
+      };
+      localStorage.setItem('use-your-benefits', JSON.stringify(userData));
+    });
+    await page.reload();
+
+    await page.getByRole('button', { name: '2026', exact: true }).click();
+    await page.waitForLoadState('domcontentloaded');
+
+    const lululemonCard = page.locator('.benefit-card', { hasText: 'lululemon Credit' });
+    await expect(lululemonCard.locator('.progress-segment.completed')).toHaveCount(1);
+    await expect(lululemonCard.locator('.progress-segment.missed')).toHaveCount(0);
+    await expect(lululemonCard.locator('.progress-segment.pending')).toHaveCount(0);
+    await expect(lululemonCard.locator('.progress-segment.future')).toHaveCount(3);
   });
 });

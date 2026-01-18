@@ -4,11 +4,10 @@ export interface CreditCard {
   id: string;
   name: string;
   annualFee: number;
-  resetBasis: 'calendar-year' | 'anniversary';
   color: string;
 }
 
-export type BenefitStatus = 'pending' | 'completed' | 'missed';
+export type BenefitStatus = 'pending' | 'completed' | 'missed' | 'future';
 
 export interface StoredTransaction {
   date: string;
@@ -23,12 +22,29 @@ export interface BenefitPeriodDefinition {
 }
 
 export interface BenefitPeriodUserState {
-  usedAmount: number;
-  status: BenefitStatus;
   transactions?: StoredTransaction[];
 }
 
-export interface BenefitPeriod extends BenefitPeriodDefinition, BenefitPeriodUserState {}
+export interface BenefitPeriod extends BenefitPeriodDefinition {
+  usedAmount: number;
+  status: BenefitStatus;
+  transactions?: StoredTransaction[];
+  isCurrent?: boolean;
+  timeProgress?: number;
+  daysLeft?: number;
+}
+
+export interface BenefitUserState {
+  activationAcknowledged: boolean;
+  ignored: boolean;
+  periods?: Record<string, BenefitPeriodUserState>;
+  transactions?: StoredTransaction[];
+}
+
+export interface BenefitDerivedFields {
+  currentUsed: number;
+  status: BenefitStatus;
+}
 
 export interface BenefitDefinition {
   id: string;
@@ -45,21 +61,14 @@ export interface BenefitDefinition {
   periods?: BenefitPeriodDefinition[];
 }
 
-export interface BenefitUserState {
-  currentUsed: number;
-  activationAcknowledged: boolean;
-  status: BenefitStatus;
-  ignored: boolean;
-  periods?: Record<string, BenefitPeriodUserState>;
-  transactions?: StoredTransaction[];
-}
-
 export type Benefit = Omit<BenefitDefinition, 'periods'> &
-  Omit<BenefitUserState, 'periods'> & {
+  BenefitUserState &
+  BenefitDerivedFields & {
     periods?: BenefitPeriod[];
     card?: CreditCard;
     claimedElsewhereYear?: number;
   };
+
 
 export interface BenefitsStaticData {
   cards: CreditCard[];
@@ -71,10 +80,6 @@ export interface UserBenefitsData {
   importNotes?: Record<string, string>;
 }
 
-export interface UpdateBenefitRequest {
-  status?: BenefitStatus;
-  ignored?: boolean;
-}
 
 export interface Stats {
   totalBenefits: number;

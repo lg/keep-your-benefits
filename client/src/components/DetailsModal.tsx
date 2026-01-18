@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useLayoutEffect, useCallback, useMemo, memo, type MouseEvent, type KeyboardEvent } from 'react';
 import type { Benefit } from '../types';
 import type { StoredTransaction } from '../../../shared/types';
+import { buildBenefitUsageSnapshot } from '../utils/dateUtils';
 
 interface DetailsModalProps {
   benefit: Benefit | null;
@@ -17,27 +18,32 @@ function DetailsModalComponent({ benefit, isOpen, onClose, onToggleActivation, o
   const [selectedPeriodId, setSelectedPeriodId] = useState<string>('');
 
   const now = new Date();
+
+  const snapshot = useMemo(() => {
+    if (!benefit) return null;
+    return buildBenefitUsageSnapshot(benefit, benefit, undefined);
+  }, [benefit]);
+
   const displayPeriods = useMemo(() => {
-    if (!benefit?.periods) return [];
-    return benefit.periods
+    if (!snapshot?.periods) return [];
+    return snapshot.periods
       .filter(period => new Date(period.startDate) <= now)
       .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
-  }, [benefit?.periods]);
+  }, [snapshot?.periods]);
 
   useEffect(() => {
-    if (benefit) {
-      const periodId = initialPeriodId && displayPeriods.some(p => p.id === initialPeriodId)
-        ? initialPeriodId
-        : displayPeriods.find(period => {
-            const start = new Date(period.startDate);
-            const end = new Date(period.endDate);
-            return now >= start && now <= end;
-          })?.id ?? displayPeriods[0]?.id ?? '';
+    if (!benefit || !snapshot) return;
+    const periodId = initialPeriodId && displayPeriods.some(p => p.id === initialPeriodId)
+      ? initialPeriodId
+      : displayPeriods.find(period => {
+          const start = new Date(period.startDate);
+          const end = new Date(period.endDate);
+          return now >= start && now <= end;
+        })?.id ?? displayPeriods[0]?.id ?? '';
 
-      setSelectedPeriodId(periodId);
-      setTargetPeriodId(periodId);
-    }
-  }, [benefit, initialPeriodId, displayPeriods]);
+    setSelectedPeriodId(periodId);
+    setTargetPeriodId(periodId);
+  }, [benefit, initialPeriodId, displayPeriods, snapshot]);
 
   const handlePeriodClick = useCallback((periodId: string) => {
     setSelectedPeriodId(periodId);
@@ -65,7 +71,7 @@ function DetailsModalComponent({ benefit, isOpen, onClose, onToggleActivation, o
     }
   }, [targetPeriodId, displayPeriods, isOpen]);
 
-  if (!isOpen || !benefit) return null;
+  if (!isOpen || !benefit || !snapshot) return null;
 
   const handleOverlayClick = (event: MouseEvent<HTMLDivElement>) => {
     if (event.target === event.currentTarget) {
@@ -80,8 +86,8 @@ function DetailsModalComponent({ benefit, isOpen, onClose, onToggleActivation, o
     }
   };
 
-  const periodValue = benefit.periods?.length
-    ? benefit.creditAmount / benefit.periods.length
+  const periodValue = snapshot.periods.length > 0
+    ? benefit.creditAmount / snapshot.periods.length
     : benefit.creditAmount;
 
   const selectedPeriod = displayPeriods.find(period => period.id === selectedPeriodId) ?? displayPeriods[0];
@@ -95,25 +101,25 @@ function DetailsModalComponent({ benefit, isOpen, onClose, onToggleActivation, o
     return `${startLabel} – ${endLabel}`;
   };
 
-  const formatDate = (dateString: string) => {
+  const formatDateLabel = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
   const getPeriodTransactions = (): StoredTransaction[] => {
-    if (selectedPeriodId && benefit.periods) {
-      const period = benefit.periods.find(p => p.id === selectedPeriodId);
+    if (selectedPeriodId && snapshot.periods) {
+      const period = snapshot.periods.find(p => p.id === selectedPeriodId);
       return period?.transactions ?? [];
     }
-    return benefit.transactions ?? [];
+    return snapshot.yearTransactions;
   };
 
   const getPeriodUsedAmount = (): number => {
-    if (selectedPeriodId && benefit.periods) {
-      const period = benefit.periods.find(p => p.id === selectedPeriodId);
+    if (selectedPeriodId && snapshot.periods) {
+      const period = snapshot.periods.find(p => p.id === selectedPeriodId);
       return period?.usedAmount ?? 0;
     }
-    return benefit.currentUsed;
+    return snapshot.currentUsed;
   };
 
   const transactions = getPeriodTransactions();
@@ -150,8 +156,7 @@ function DetailsModalComponent({ benefit, isOpen, onClose, onToggleActivation, o
                   {displayPeriods.map(period => {
                     const isSelected = period.id === selectedPeriodIdValue;
                     const periodUsed = period.usedAmount;
-                    const hasTransactions = period.transactions && period.transactions.length > 0;
-                    const isComplete = hasTransactions && periodUsed >= periodValue;
+                    const isComplete = period.status === 'completed';
                     const endDate = new Date(period.endDate);
                     const isPast = now > endDate;
                     const borderClass = isComplete
@@ -197,7 +202,7 @@ function DetailsModalComponent({ benefit, isOpen, onClose, onToggleActivation, o
                   {transactions.map((tx) => (
                     <div key={`${tx.date}-${tx.description}-${tx.amount}`} className="flex justify-between text-sm py-1">
                           <span className="text-slate-300">
-                            {formatDate(tx.date)} {tx.description}
+                            {formatDateLabel(tx.date)} {tx.description}
                           </span>
                           <span className="text-emerald-300">${tx.amount.toFixed(2)}</span>
                         </div>
@@ -226,7 +231,7 @@ function DetailsModalComponent({ benefit, isOpen, onClose, onToggleActivation, o
                 {transactions.map((tx) => (
                   <div key={`${tx.date}-${tx.description}-${tx.amount}`} className="flex justify-between text-sm py-1">
                     <span className="text-slate-300">
-                      {formatDate(tx.date)} {tx.description}
+                      {formatDateLabel(tx.date)} {tx.description}
                     </span>
                     <span className="text-emerald-300">${tx.amount.toFixed(2)}</span>
                   </div>
