@@ -15,14 +15,11 @@ function App() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [selectedYear, setSelectedYear] = useState(2026);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [updateError, setUpdateError] = useState<string | null>(null);
 
   const loadData = useCallback(async (signal?: AbortSignal, year?: number) => {
     try {
-      setLoading(true);
-      
       // Fetch cards and definitions from static JSON
       const [cardsData, definitionsData] = await Promise.all([
         api.getCards(),
@@ -49,9 +46,7 @@ function App() {
       if (signal?.aborted) return;
       setError((err as Error).message);
     } finally {
-      if (!signal?.aborted) {
-        setLoading(false);
-      }
+      // Data loaded
     }
   }, []);
 
@@ -168,20 +163,17 @@ function App() {
   }, []);
 
   const handleYearSelect = useCallback((year: number) => {
-    setSelectedYear(year);
-    setSelectedCardId(null);
-  }, []);
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-slate-400">Loading benefits...</p>
-        </div>
-      </div>
-    );
-  }
-
+    if (year === selectedYear) return;
+    const update = () => {
+      setSelectedYear(year);
+      setSelectedCardId(null);
+    };
+    if (document.startViewTransition) {
+      document.startViewTransition(update);
+    } else {
+      update();
+    }
+  }, [selectedYear]);
   if (error) {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center">
