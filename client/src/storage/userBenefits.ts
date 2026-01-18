@@ -140,8 +140,8 @@ export function importBenefitUsage(
       }
     }
 
-    // Handle non-period benefit transactions
-    if (usage.transactions && (!benefitDef.periods || benefitDef.periods.length === 0)) {
+    // Handle benefit-level transactions (even for period benefits)
+    if (usage.transactions && usage.transactions.length > 0) {
       existing.transactions = usage.transactions;
     }
 

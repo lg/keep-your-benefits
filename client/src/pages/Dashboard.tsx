@@ -13,6 +13,7 @@ interface DashboardProps {
   allBenefits: Benefit[];
   definitions: BenefitDefinition[];
   stats: Stats | null;
+  selectedYear: number;
   onToggleActivation: (id: string) => void;
   onToggleVisibility: (id: string) => void;
   onImport: (cardId: string, aggregated: Map<string, {
@@ -28,6 +29,7 @@ export function Dashboard({
   allBenefits,
   definitions,
   stats,
+  selectedYear,
   onToggleActivation,
   onToggleVisibility,
   onImport
@@ -71,7 +73,7 @@ export function Dashboard({
       benefits: benefits.filter(b => b.cardId === card.id),
       allBenefits: allBenefits.filter(b => b.cardId === card.id)
     })),
-    [cards, benefits, allBenefits]
+    [cards, benefits, allBenefits, selectedYear]
   );
 
   return (
@@ -112,7 +114,7 @@ export function Dashboard({
           <div key={card.id} className="mb-8">
             <CardHeader 
               card={card} 
-              stats={calculateStats(cardBenefits)}
+              stats={calculateStats(cardBenefits, selectedYear)}
               allBenefits={cardAllBenefits}
               onUpdateBenefit={onToggleVisibility}
               onImportClick={() => handleImportClick(card.id)}
@@ -122,6 +124,7 @@ export function Dashboard({
                 <BenefitCard
                   key={benefit.id}
                   benefit={benefit}
+                  selectedYear={selectedYear}
                   onViewDetails={handleViewDetails}
                   onViewPeriod={handleViewPeriod}
                 />

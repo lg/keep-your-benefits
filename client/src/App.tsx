@@ -14,11 +14,12 @@ function App() {
   const [allBenefits, setAllBenefits] = useState<Benefit[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
+  const [selectedYear, setSelectedYear] = useState(2026);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [updateError, setUpdateError] = useState<string | null>(null);
 
-  const loadData = useCallback(async (signal?: AbortSignal) => {
+  const loadData = useCallback(async (signal?: AbortSignal, year?: number) => {
     try {
       setLoading(true);
       
@@ -32,9 +33,9 @@ function App() {
       if (signal?.aborted) return;
       
       // Fetch all benefits once, then filter for non-ignored
-      const allBenefitsData = await benefitsService.getBenefits(undefined, true);
+      const allBenefitsData = await benefitsService.getBenefits(undefined, true, year);
       const benefitsData = allBenefitsData.filter(b => !b.ignored);
-      const statsData = await benefitsService.getStats();
+      const statsData = await benefitsService.getStats(year);
       
       // Only update state if still mounted
       if (signal?.aborted) return;
@@ -54,8 +55,8 @@ function App() {
     }
   }, []);
 
-  const loadAllBenefitsForCard = useCallback(async (cardId: string, signal?: AbortSignal) => {
-    const allBenefitsData = await benefitsService.getBenefits(cardId, true);
+  const loadAllBenefitsForCard = useCallback(async (cardId: string, signal?: AbortSignal, year?: number) => {
+    const allBenefitsData = await benefitsService.getBenefits(cardId, true, year);
     if (signal?.aborted) return;
     setAllBenefits(prev => {
       const otherBenefits = prev.filter(b => b.cardId !== cardId);
@@ -65,21 +66,21 @@ function App() {
 
   useEffect(() => {
     const controller = new AbortController();
-    loadData(controller.signal);
+    loadData(controller.signal, selectedYear);
     return () => {
       controller.abort();
     };
-  }, [loadData]);
+  }, [loadData, selectedYear]);
   
   useEffect(() => {
     if (selectedCardId) {
       const controller = new AbortController();
-      loadAllBenefitsForCard(selectedCardId, controller.signal);
+      loadAllBenefitsForCard(selectedCardId, controller.signal, selectedYear);
       return () => {
         controller.abort();
       };
     }
-  }, [selectedCardId, loadAllBenefitsForCard]);
+  }, [selectedCardId, loadAllBenefitsForCard, selectedYear]);
 
   const handleToggleActivation = useCallback((id: string) => {
     const definition = definitions.find(d => d.id === id);
@@ -88,12 +89,12 @@ function App() {
       return;
     }
 
-    const updated = benefitsService.toggleActivation(id, definition);
+    const updated = benefitsService.toggleActivation(id, definition, selectedYear);
 
     setAllBenefits(prev => prev.map(b => b.id === id ? updated : b));
     setBenefits(prev => prev.map(b => b.id === id ? updated : b));
     setUpdateError(null);
-  }, [definitions]);
+  }, [definitions, selectedYear]);
 
   const handleToggleVisibility = useCallback(async (id: string) => {
     const definition = definitions.find(d => d.id === id);
@@ -105,7 +106,7 @@ function App() {
     const currentBenefit = allBenefits.find(b => b.id === id);
     const newIgnored = !currentBenefit?.ignored;
 
-    const updated = benefitsService.updateBenefit(id, definition, { ignored: newIgnored });
+    const updated = benefitsService.updateBenefit(id, definition, { ignored: newIgnored }, selectedYear);
 
     setAllBenefits(prev => prev.map(b => b.id === id ? updated : b));
     if (newIgnored) {
@@ -120,10 +121,10 @@ function App() {
       });
     }
 
-    const statsData = await benefitsService.getStats();
+    const statsData = await benefitsService.getStats(selectedYear);
     setStats(statsData);
     setUpdateError(null);
-  }, [definitions, allBenefits]);
+  }, [definitions, allBenefits, selectedYear]);
 
   const handleImport = useCallback(async (
     cardId: string,
@@ -140,15 +141,15 @@ function App() {
     importBenefitUsage(aggregated, cardDefinitions);
     
     // Refresh benefits from storage
-    const allBenefitsData = await benefitsService.getBenefits(undefined, true);
+    const allBenefitsData = await benefitsService.getBenefits(undefined, true, selectedYear);
     const benefitsData = allBenefitsData.filter(b => !b.ignored);
-    const statsData = await benefitsService.getStats();
+    const statsData = await benefitsService.getStats(selectedYear);
     
     setAllBenefits(allBenefitsData);
     setBenefits(benefitsData);
     setStats(statsData);
     setUpdateError(null);
-  }, [definitions]);
+  }, [definitions, selectedYear]);
 
   const handleClearError = useCallback(() => {
     setUpdateError(null);
@@ -159,13 +160,17 @@ function App() {
   }, []);
 
   const handleRetry = useCallback(() => {
-    loadData();
-  }, [loadData]);
+    loadData(undefined, selectedYear);
+  }, [loadData, selectedYear]);
 
   const handleCardSelect = useCallback((cardId: string) => {
     setSelectedCardId(cardId);
   }, []);
 
+  const handleYearSelect = useCallback((year: number) => {
+    setSelectedYear(year);
+    setSelectedCardId(null);
+  }, []);
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center">
@@ -214,8 +219,8 @@ function App() {
       )}
       <header className="bg-slate-800 border-b border-slate-700 sticky top-0 z-10">
         <div className="max-w-6xl mx-auto px-4 py-4">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-4">
+          <div className="flex flex-col gap-3 md:flex-row md:justify-between md:items-center">
+            <div className="flex flex-wrap items-center gap-4">
               <button
                 onClick={handleBack}
                 className={`font-bold text-xl ${!selectedCardId ? 'text-white' : 'text-slate-400 hover:text-white'}`}
@@ -223,8 +228,26 @@ function App() {
               >
                 Use Your Benefits
               </button>
+              <div className="flex items-center gap-2">
+                <div className="flex rounded-lg border border-slate-700 overflow-hidden">
+                  {[2024, 2025, 2026].map(year => (
+                    <button
+                      key={year}
+                      onClick={() => handleYearSelect(year)}
+                      className={`px-3 py-1.5 text-sm font-medium transition-colors ${
+                        selectedYear === year
+                          ? 'bg-slate-200 text-slate-900'
+                          : 'bg-slate-800 text-slate-400 hover:text-white'
+                      }`}
+                      type="button"
+                    >
+                      {year}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
-            <nav className="flex gap-2">
+            <nav className="flex flex-wrap gap-2">
               <button
                 onClick={handleBack}
                 className={`px-3 py-1 rounded ${
@@ -262,6 +285,7 @@ function App() {
                 benefits={selectedCardBenefits}
                 allBenefits={selectedCardAllBenefits}
                 definitions={definitions.filter(d => d.cardId === selectedCardId)}
+                selectedYear={selectedYear}
                 onBack={handleBack}
                 onToggleActivation={handleToggleActivation}
                 onToggleVisibility={handleToggleVisibility}
@@ -275,6 +299,7 @@ function App() {
               allBenefits={allBenefits}
               definitions={definitions}
               stats={stats}
+              selectedYear={selectedYear}
               onToggleActivation={handleToggleActivation}
               onToggleVisibility={handleToggleVisibility}
               onImport={handleImport}

@@ -31,9 +31,17 @@ export function getTimeProgress(startDate: string, endDate: string): number {
   return (elapsed / totalDuration) * 100;
 }
 
-export function calculateStats(benefits: Benefit[]): CardStats {
+export function calculateStats(benefits: Benefit[], year?: number): CardStats {
   const now = new Date();
   const totalBenefits = benefits.length;
+  const endOfYear = year ? new Date(Date.UTC(year + 1, 0, 1)) : null;
+  const referenceDate = year
+    ? year > now.getUTCFullYear()
+      ? new Date(Date.UTC(year, 0, 1))
+      : year < now.getUTCFullYear()
+        ? new Date(Date.UTC(year + 1, 0, 1))
+        : now
+    : now;
 
   let totalValue = 0;
   let usedValue = 0;
@@ -49,14 +57,15 @@ export function calculateStats(benefits: Benefit[]): CardStats {
 
     if (benefit.periods && benefit.periods.length > 0) {
       const segmentValue = benefit.creditAmount / benefit.periods.length;
+      const isClaimedElsewhere = Boolean(benefit.claimedElsewhereYear);
 
       for (const period of benefit.periods) {
         const start = new Date(period.startDate);
         const end = new Date(period.endDate);
-        const isFuture = now < start;
-        const isPast = now > end;
+        const isFuture = referenceDate < start;
+        const isPast = referenceDate > end;
         const isCurrent = !isFuture && !isPast;
-        const isComplete = period.usedAmount >= segmentValue;
+        const isComplete = isClaimedElsewhere || period.usedAmount >= segmentValue;
 
         if (!isFuture) {
           ytdTotalPeriods++;
@@ -74,27 +83,50 @@ export function calculateStats(benefits: Benefit[]): CardStats {
           currentPeriodCompletedCount++;
         }
       }
-    } else {
-      const isComplete = benefit.currentUsed >= benefit.creditAmount;
-      const isPast = now > new Date(benefit.endDate);
-      const hasStarted = now >= new Date(benefit.startDate);
-      const isCurrent = hasStarted && !isPast;
 
-      if (isCurrent) {
-        ytdTotalPeriods++;
-        if (isComplete) {
-          ytdCompletedPeriods++;
+      continue;
+    }
+
+    if (year && endOfYear && new Date(benefit.endDate) <= endOfYear) {
+      const isComplete = Boolean(benefit.claimedElsewhereYear)
+        || benefit.currentUsed >= benefit.creditAmount;
+
+      const isPast = endOfYear > new Date(benefit.endDate);
+
+      ytdTotalPeriods++;
+      if (isComplete) {
+        ytdCompletedPeriods++;
+        if (!isPast) {
           currentPeriodCompletedCount++;
-        } else {
-          pendingCount++;
         }
       } else if (isPast) {
-        ytdTotalPeriods++;
-        if (isComplete) {
-          ytdCompletedPeriods++;
-        } else {
-          missedCount++;
-        }
+        missedCount++;
+      } else {
+        pendingCount++;
+      }
+
+      continue;
+    }
+
+    const isComplete = benefit.currentUsed >= benefit.creditAmount;
+    const isPast = referenceDate > new Date(benefit.endDate);
+    const hasStarted = referenceDate >= new Date(benefit.startDate);
+    const isCurrent = hasStarted && !isPast;
+
+    if (isCurrent) {
+      ytdTotalPeriods++;
+      if (isComplete) {
+        ytdCompletedPeriods++;
+        currentPeriodCompletedCount++;
+      } else {
+        pendingCount++;
+      }
+    } else if (isPast) {
+      ytdTotalPeriods++;
+      if (isComplete) {
+        ytdCompletedPeriods++;
+      } else {
+        missedCount++;
       }
     }
   }

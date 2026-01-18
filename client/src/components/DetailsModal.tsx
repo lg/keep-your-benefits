@@ -128,7 +128,14 @@ function DetailsModalComponent({ benefit, isOpen, onClose, onToggleActivation, o
       tabIndex={0}
     >
       <div className="modal-content" role="dialog" aria-modal="true">
-        <h2 className="text-xl font-bold mb-4">{benefit.name}</h2>
+        <div className="mb-4">
+          <h2 className="text-xl font-bold">{benefit.name}</h2>
+          {benefit.claimedElsewhereYear ? (
+            <p className="text-sm text-emerald-300 mt-1">
+              Claimed in {benefit.claimedElsewhereYear}
+            </p>
+          ) : null}
+        </div>
 
         {displayPeriods.length > 0 && (
           <div className="mb-4">

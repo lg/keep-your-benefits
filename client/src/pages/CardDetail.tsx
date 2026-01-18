@@ -12,6 +12,7 @@ interface CardDetailProps {
   benefits: Benefit[];
   allBenefits: Benefit[];
   definitions: BenefitDefinition[];
+  selectedYear: number;
   onBack: () => void;
   onToggleActivation: (id: string) => void;
   onToggleVisibility: (id: string) => void;
@@ -27,6 +28,7 @@ export function CardDetail({
   benefits,
   allBenefits,
   definitions,
+  selectedYear,
   onBack,
   onToggleActivation,
   onToggleVisibility,
@@ -68,7 +70,7 @@ export function CardDetail({
 
       <CardHeader 
         card={card} 
-        stats={calculateStats(benefits)} 
+        stats={calculateStats(benefits, selectedYear)} 
         allBenefits={allBenefits}
         onUpdateBenefit={onToggleVisibility}
         onImportClick={handleImportClick}
@@ -79,6 +81,7 @@ export function CardDetail({
           <BenefitCard
             key={benefit.id}
             benefit={benefit}
+            selectedYear={selectedYear}
             onViewDetails={handleViewDetails}
             onViewPeriod={handleViewPeriod}
           />

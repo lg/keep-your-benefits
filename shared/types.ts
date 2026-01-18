@@ -58,6 +58,7 @@ export type Benefit = Omit<BenefitDefinition, 'periods'> &
   Omit<BenefitUserState, 'periods'> & {
     periods?: BenefitPeriod[];
     card?: CreditCard;
+    claimedElsewhereYear?: number;
   };
 
 export interface BenefitsStaticData {

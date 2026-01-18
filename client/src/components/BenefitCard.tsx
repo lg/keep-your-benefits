@@ -1,7 +1,7 @@
 import { useMemo, useCallback, memo } from 'react';
 import { Benefit, ProgressSegment } from '../types';
 import { ProgressBar } from './ProgressBar';
-import { formatDate, getDaysUntilExpiry, getTimeProgress } from '../utils/dateUtils';
+import { formatDate } from '../utils/dateUtils';
 
 interface StatusBadgeProps {
   status: 'pending' | 'completed' | 'missed';
@@ -23,13 +23,52 @@ function StatusBadge({ status }: StatusBadgeProps) {
 
 interface BenefitCardProps {
   benefit: Benefit;
+  selectedYear?: number;
   onViewDetails: (benefit: Benefit) => void;
   onViewPeriod?: (benefit: Benefit, periodId: string) => void;
 }
 
-function BenefitCardComponent({ benefit, onViewDetails, onViewPeriod }: BenefitCardProps) {
-  const daysUntilExpiry = getDaysUntilExpiry(benefit.endDate);
-  const overallTimeProgress = getTimeProgress(benefit.startDate, benefit.endDate);
+function BenefitCardComponent({ benefit, selectedYear, onViewDetails, onViewPeriod }: BenefitCardProps) {
+  const now = new Date();
+  const currentYear = now.getUTCFullYear();
+  const yearStart = selectedYear !== undefined
+    ? new Date(Date.UTC(selectedYear, 0, 1))
+    : null;
+  const yearEnd = selectedYear !== undefined
+    ? new Date(Date.UTC(selectedYear + 1, 0, 1))
+    : null;
+  const referenceDate = selectedYear !== undefined
+    ? selectedYear > currentYear
+      ? yearStart ?? now
+      : selectedYear < currentYear
+        ? yearEnd ?? now
+        : now
+    : now;
+  const inSelectedYear = yearStart && yearEnd
+    ? new Date(benefit.startDate) >= yearStart && new Date(benefit.endDate) < yearEnd
+    : true;
+  const isOutOfYearPast = selectedYear !== undefined && selectedYear < currentYear && !inSelectedYear;
+
+  const getDaysUntilExpiryFor = (endDate: string) => {
+    const expiry = new Date(endDate);
+    const diff = expiry.getTime() - referenceDate.getTime();
+    return Math.ceil(diff / (1000 * 60 * 60 * 24));
+  };
+
+  const getTimeProgressFor = (startDate: string, endDate: string) => {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    if (referenceDate <= start) return 0;
+    if (referenceDate >= end) return 100;
+
+    const totalDuration = end.getTime() - start.getTime();
+    const elapsed = referenceDate.getTime() - start.getTime();
+    return (elapsed / totalDuration) * 100;
+  };
+
+  const daysUntilExpiry = getDaysUntilExpiryFor(benefit.endDate);
+  const overallTimeProgress = getTimeProgressFor(benefit.startDate, benefit.endDate);
 
   const segmentsCount = useMemo(() => 
     benefit.periods && benefit.periods.length > 0 ? benefit.periods.length : 1,
@@ -39,16 +78,15 @@ function BenefitCardComponent({ benefit, onViewDetails, onViewPeriod }: BenefitC
   const segments = useMemo((): ProgressSegment[] => {
     if (benefit.periods && benefit.periods.length > 0) {
       const segmentValue = benefit.creditAmount / benefit.periods.length;
-      const now = new Date();
 
       return benefit.periods.map(p => {
         const start = new Date(p.startDate);
         const end = new Date(p.endDate);
-        const isFuture = now < start;
-        const isPast = now > end;
+        const isFuture = referenceDate < start;
+        const isPast = referenceDate > end;
         const isCurrent = !isFuture && !isPast;
-        const hasTransactions = p.transactions && p.transactions.length > 0;
-        const isComplete = hasTransactions && p.usedAmount >= segmentValue;
+        const isComplete = Boolean(benefit.claimedElsewhereYear)
+          || p.usedAmount >= segmentValue;
 
         let status: ProgressSegment['status'] = 'pending';
         if (isFuture) {
@@ -65,19 +103,21 @@ function BenefitCardComponent({ benefit, onViewDetails, onViewPeriod }: BenefitC
           id: p.id,
           status,
           label: `${formatDate(p.startDate)} - ${formatDate(p.endDate)}`,
-          timeProgress: isCurrent ? getTimeProgress(p.startDate, p.endDate) : undefined,
+           timeProgress: isCurrent ? getTimeProgressFor(p.startDate, p.endDate) : undefined,
+
           startDate: p.startDate,
           endDate: p.endDate,
-          daysLeft: isCurrent ? getDaysUntilExpiry(p.endDate) : undefined,
+           daysLeft: isCurrent ? getDaysUntilExpiryFor(p.endDate) : undefined,
+
           isCurrent
         };
       });
     }
 
-    const isComplete = benefit.currentUsed >= benefit.creditAmount;
-    const isPast = daysUntilExpiry <= 0;
-    const hasTransactions = benefit.transactions && benefit.transactions.length > 0;
-    const status: ProgressSegment['status'] = hasTransactions && isComplete ? 'completed' : isPast ? 'missed' : 'pending';
+    const isComplete = Boolean(benefit.claimedElsewhereYear)
+      || benefit.currentUsed >= benefit.creditAmount;
+    const isPast = daysUntilExpiry <= 0 || isOutOfYearPast;
+    const status: ProgressSegment['status'] = isComplete ? 'completed' : isPast ? 'missed' : 'pending';
     const isCurrent = !isPast;
 
     return [
@@ -92,6 +132,7 @@ function BenefitCardComponent({ benefit, onViewDetails, onViewPeriod }: BenefitC
         isCurrent
       }
     ];
+
   }, [benefit, daysUntilExpiry, overallTimeProgress]);
 
   const activationClass = benefit.activationRequired
