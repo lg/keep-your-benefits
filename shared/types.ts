@@ -113,4 +113,7 @@ export interface ProgressSegment {
   endDate?: string;
   daysLeft?: number;
   isCurrent?: boolean;
+  transactions?: StoredTransaction[];
+  usedAmount?: number;
+  segmentValue?: number;
 }

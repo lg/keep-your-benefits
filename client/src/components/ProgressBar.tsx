@@ -1,11 +1,10 @@
-import { memo } from 'react';
+import { memo, type ReactNode } from 'react';
 import type { ProgressSegment } from '../types';
 import { Tooltip } from './Tooltip';
 
 interface ProgressBarProps {
   segments: ProgressSegment[];
   segmentsCount: number;
-  onSegmentClick?: (segment: ProgressSegment) => void;
 }
 
 const segmentClass = (segment: ProgressSegment) => {
@@ -16,30 +15,56 @@ const segmentClass = (segment: ProgressSegment) => {
   return 'progress-segment pending';
 };
 
-function ProgressBarComponent({ segments, segmentsCount, onSegmentClick }: ProgressBarProps) {
+const formatTxDate = (dateString: string) => {
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
+};
+
+const buildTooltipContent = (segment: ProgressSegment): ReactNode => {
+  const dateLabel = segment.label || 'Unknown period';
+  const transactions = segment.transactions ?? [];
+  const usedAmount = segment.usedAmount ?? 0;
+  const segmentValue = segment.segmentValue ?? 0;
+
+  if (transactions.length === 0) {
+    return (
+      <div>
+        <div className="font-medium">{dateLabel}</div>
+        <div className="text-slate-400 text-[10px] mt-1">No transactions</div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="font-medium">{dateLabel}</div>
+      <div className="border-t border-slate-600 my-1" />
+      {transactions.map((tx, i) => (
+        <div key={i} className="flex justify-between gap-4 text-[10px]">
+          <span className="text-slate-300">{formatTxDate(tx.date)} {tx.description}</span>
+          <span className="text-emerald-300">${tx.amount.toFixed(2)}</span>
+        </div>
+      ))}
+      <div className="border-t border-slate-600 my-1" />
+      <div className="flex justify-between gap-4 text-[10px] font-medium">
+        <span>Total</span>
+        <span>${usedAmount.toFixed(2)} / ${segmentValue.toFixed(0)}</span>
+      </div>
+    </div>
+  );
+};
+
+function ProgressBarComponent({ segments, segmentsCount }: ProgressBarProps) {
   return (
     <div className="flex gap-1">
       {Array.from({ length: segmentsCount }).map((_, index) => {
         const segment = segments[index];
-        const isClickable = segment && segment.status !== 'pending' && !!onSegmentClick;
         return (
           <div
             key={index}
-            role={isClickable ? 'button' : undefined}
-            tabIndex={isClickable ? 0 : undefined}
-            className={`flex-1 relative ${segment ? segmentClass(segment) : 'bg-slate-700'} ${isClickable ? 'cursor-pointer' : ''}`}
-            {...(isClickable ? {
-              onClick: () => onSegmentClick(segment),
-              onKeyDown: e => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  onSegmentClick(segment);
-                }
-              },
-              'aria-label': segment.label || `Segment ${index + 1}`,
-            } : {})}
+            className={`flex-1 relative ${segment ? segmentClass(segment) : 'bg-slate-700'}`}
           >
-            <Tooltip content={segment?.label || `Segment ${index + 1}`}>
+            <Tooltip content={segment ? buildTooltipContent(segment) : `Segment ${index + 1}`}>
               <div className="w-full h-full" />
             </Tooltip>
             {segment && segment.isCurrent && segment.timeProgress !== undefined && segment.daysLeft !== undefined ? (

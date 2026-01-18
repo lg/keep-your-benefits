@@ -54,51 +54,31 @@ test.describe('Benefit Cards', () => {
   });
 });
 
-test.describe('Details Modal', () => {
+test.describe('Enrollment Toggle', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
     await page.evaluate(() => localStorage.clear());
     await page.reload();
   });
 
-  test('opens when Details button clicked', async ({ page }) => {
-    const uberCard = page.locator('.benefit-card', { hasText: 'Uber Cash' });
-    await uberCard.getByRole('button', { name: 'Details' }).click();
-    await expect(page.getByRole('dialog')).toBeVisible();
-  });
-
-  test('shows no transactions message when empty', async ({ page }) => {
-    const uberCard = page.locator('.benefit-card', { hasText: 'Uber Cash' });
-    await uberCard.getByRole('button', { name: 'Details' }).click();
-    await expect(page.getByRole('dialog')).toBeVisible();
-    await expect(page.getByText('No transactions imported yet. Import your statement to track usage.')).toBeVisible();
-  });
-
-  test('enrollment toggle saves immediately', async ({ page }) => {
-    const uberCard = page.locator('.benefit-card', { hasText: 'Uber Cash' });
-    await uberCard.getByRole('button', { name: 'Details' }).click();
-    const dialog = page.getByRole('dialog');
-    const enrollmentCheckbox = dialog.getByLabel('Enrolled in benefit');
-
-    await enrollmentCheckbox.check();
-    await expect(uberCard.getByText('Enrolled')).toBeVisible();
-
+  test('enrollment button toggles and persists on reload', async ({ page }) => {
+    // Find a benefit that requires enrollment (Airline Fee Credit does)
+    const benefitCard = page.locator('.benefit-card', { hasText: 'Airline Fee Credit' });
+    
+    // Initially should show "Needs Enrollment" button
+    const enrollButton = benefitCard.getByRole('button', { name: 'Needs Enrollment' });
+    await expect(enrollButton).toBeVisible();
+    
+    // Click to toggle enrollment
+    await enrollButton.click();
+    
+    // Should now show "Enrolled"
+    await expect(benefitCard.getByRole('button', { name: 'Enrolled' })).toBeVisible();
+    
+    // Reload and verify it persisted
     await page.reload();
-    const reloadedCard = page.locator('.benefit-card', { hasText: 'Uber Cash' });
-    await expect(reloadedCard.getByText('Enrolled')).toBeVisible();
-  });
-
-  test('visibility toggle saves and hides benefit on reload', async ({ page }) => {
-    const uberCard = page.locator('.benefit-card', { hasText: 'Uber Cash' });
-    await uberCard.getByRole('button', { name: 'Details' }).click();
-    const dialog = page.getByRole('dialog');
-    const visibilityCheckbox = dialog.getByLabel('Show in list');
-
-    await visibilityCheckbox.uncheck();
-    await dialog.getByRole('button', { name: 'Close' }).click();
-
-    await page.reload();
-    await expect(page.getByRole('heading', { name: 'Uber Cash' })).toBeHidden();
+    const reloadedCard = page.locator('.benefit-card', { hasText: 'Airline Fee Credit' });
+    await expect(reloadedCard.getByRole('button', { name: 'Enrolled' })).toBeVisible();
   });
 });
 
@@ -109,7 +89,7 @@ test.describe('Transaction-based Progress', () => {
     await page.reload();
   });
 
-  test('current period without transactions shows as pending', async ({ page }) => {
+  test('current period without transactions shows as current (not completed)', async ({ page }) => {
     await page.evaluate(() => {
       const userData = {
         benefits: {
@@ -124,7 +104,8 @@ test.describe('Transaction-based Progress', () => {
     await page.reload();
 
     const uberCard = page.locator('.benefit-card', { hasText: 'Uber One Credit' });
-    await expect(uberCard.locator('.progress-segment.pending')).toHaveCount(1);
+    // Current period without transactions shows as 'current' class
+    await expect(uberCard.locator('.progress-segment.current')).toHaveCount(1);
     await expect(uberCard.locator('.progress-segment.completed')).toHaveCount(0);
   });
 
@@ -165,7 +146,8 @@ test.describe('Transaction-based Progress', () => {
 
     const uberCard = page.locator('.benefit-card', { hasText: 'Uber One Credit' });
     await expect(uberCard.locator('.progress-segment.completed')).toHaveCount(0);
-    await expect(uberCard.locator('.progress-segment.pending')).toHaveCount(1);
+    // Current period shows as 'current' class, not 'pending'
+    await expect(uberCard.locator('.progress-segment.current')).toHaveCount(1);
   });
 
   test('benefit with sufficient transactions shows completed segment', async ({ page }) => {

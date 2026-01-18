@@ -2,9 +2,7 @@ import { useState, useCallback } from 'react';
 import type { Benefit, CreditCard, BenefitDefinition } from '../types';
 import { BenefitCard } from '../components/BenefitCard';
 import { CardHeader } from '../components/CardHeader';
-import { DetailsModal } from '../components/DetailsModal';
 import { ImportModal } from '../components/ImportModal';
-import { useDetailsModal } from '../hooks/useDetailsModal';
 import { calculateStats } from '@shared/utils';
 
 interface CardDetailProps {
@@ -17,7 +15,6 @@ interface CardDetailProps {
   onToggleEnrollment: (id: string) => void;
   onToggleVisibility: (id: string) => void;
   onImport: (cardId: string, aggregated: Map<string, {
-    currentUsed: number;
     periods?: Record<string, { usedAmount: number; transactions?: { date: string; description: string; amount: number }[] }>;
     transactions?: { date: string; description: string; amount: number }[];
   }>) => void;
@@ -34,12 +31,6 @@ export function CardDetail({
   onToggleVisibility,
   onImport
 }: CardDetailProps) {
-  const { viewingBenefitId, isModalOpen, initialPeriodId, handleViewDetails, handleViewPeriod, handleClose } = useDetailsModal();
-
-  const viewingBenefit = viewingBenefitId
-    ? allBenefits.find(b => b.id === viewingBenefitId) ?? null
-    : null;
-  
   const [isImportOpen, setIsImportOpen] = useState(false);
 
   const handleImportClick = useCallback(() => {
@@ -51,7 +42,6 @@ export function CardDetail({
   }, []);
 
   const handleImportConfirm = useCallback((aggregated: Map<string, {
-    currentUsed: number;
     periods?: Record<string, { usedAmount: number; transactions?: { date: string; description: string; amount: number }[] }>;
     transactions?: { date: string; description: string; amount: number }[];
   }>) => {
@@ -83,20 +73,10 @@ export function CardDetail({
             key={benefit.id}
             benefit={benefit}
             selectedYear={selectedYear}
-            onViewDetails={handleViewDetails}
-            onViewPeriod={handleViewPeriod}
+            onToggleEnrollment={onToggleEnrollment}
           />
         ))}
       </div>
-
-      <DetailsModal
-        benefit={viewingBenefit}
-        isOpen={isModalOpen}
-        onClose={handleClose}
-        onToggleEnrollment={onToggleEnrollment}
-        onToggleVisibility={onToggleVisibility}
-        initialPeriodId={initialPeriodId}
-      />
 
       <ImportModal
         isOpen={isImportOpen}

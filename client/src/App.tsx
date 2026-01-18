@@ -124,7 +124,6 @@ function App() {
   const handleImport = useCallback(async (
     cardId: string,
     aggregated: Map<string, {
-      currentUsed: number;
       periods?: Record<string, { usedAmount: number; transactions?: { date: string; description: string; amount: number }[] }>;
       transactions?: { date: string; description: string; amount: number }[];
     }>

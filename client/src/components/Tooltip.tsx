@@ -43,8 +43,8 @@ function TooltipComponent({ content, children }: TooltipProps) {
         <div
           className="fixed z-50 bg-slate-800 border border-slate-600 shadow-lg rounded text-xs text-white text-left leading-tight px-2 py-1 pointer-events-none whitespace-nowrap"
           style={{
-            left: position.x + 12,
-            top: position.y + 12
+            left: position.x,
+            bottom: window.innerHeight - position.y
           }}
         >
           {content}

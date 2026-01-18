@@ -279,7 +279,10 @@ export function buildProgressSegments(
     startDate: period.startDate,
     endDate: period.endDate,
     daysLeft: period.isCurrent ? period.daysLeft : undefined,
-    isCurrent: period.isCurrent
+    isCurrent: period.isCurrent,
+    transactions: period.transactions,
+    usedAmount: period.usedAmount,
+    segmentValue: snapshot.segmentValue
   }));
 }
 
