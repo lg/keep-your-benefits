@@ -1,19 +1,17 @@
-import { useMemo, useState, useCallback } from 'react';
-import type { Benefit, Stats, CreditCard, BenefitDefinition } from '../types';
+import { useMemo, useState, useCallback, lazy, Suspense } from 'react';
+import type { Benefit, Stats, CreditCard } from '../types';
 import { BenefitCard } from '../components/BenefitCard';
 import { CardHeader } from '../components/CardHeader';
-import { ImportModal } from '../components/ImportModal';
+import { useBenefits } from '../context/BenefitsContext';
 import { calculateStats, getTotalAnnualFee } from '@shared/utils';
+
+const ImportModal = lazy(() => import('../components/ImportModal'));
 
 interface DashboardProps {
   benefits: Benefit[];
   cards: CreditCard[];
   allBenefits: Benefit[];
-  definitions: BenefitDefinition[];
   stats: Stats | null;
-  selectedYear: number;
-  onToggleEnrollment: (id: string) => void;
-  onToggleVisibility: (id: string) => void;
   onImport: (cardId: string, aggregated: Map<string, {
     periods?: Record<string, { usedAmount: number; transactions?: { date: string; description: string; amount: number }[] }>;
     transactions?: { date: string; description: string; amount: number }[];
@@ -24,13 +22,10 @@ export function Dashboard({
   benefits,
   cards,
   allBenefits,
-  definitions,
   stats,
-  selectedYear,
-  onToggleEnrollment,
-  onToggleVisibility,
   onImport
 }: DashboardProps) {
+  const { definitions, selectedYear, onToggleEnrollment, onToggleVisibility } = useBenefits();
   
   // Import modal state
   const [importCardId, setImportCardId] = useState<string | null>(null);
@@ -64,7 +59,7 @@ export function Dashboard({
       benefits: benefits.filter(b => b.cardId === card.id),
       allBenefits: allBenefits.filter(b => b.cardId === card.id)
     })),
-    [cards, benefits, allBenefits, selectedYear]
+    [cards, benefits, allBenefits]
   );
 
   return (
@@ -109,14 +104,13 @@ export function Dashboard({
               allBenefits={cardAllBenefits}
               selectedYear={selectedYear}
               onUpdateBenefit={onToggleVisibility}
-              onImportClick={() => handleImportClick(card.id)}
+              onImportClick={handleImportClick}
             />
             <div className="grid gap-4 md:grid-cols-2">
               {cardBenefits.map(benefit => (
                 <BenefitCard
                   key={benefit.id}
                   benefit={benefit}
-                  selectedYear={selectedYear}
                   onToggleEnrollment={onToggleEnrollment}
                 />
               ))}
@@ -125,14 +119,16 @@ export function Dashboard({
         )
       ))}
 
-      <ImportModal
-        isOpen={importCardId !== null}
-        cardId={importCardId ?? ''}
-        cardName={importCard?.name ?? ''}
-        benefits={importCardDefinitions}
-        onClose={handleImportClose}
-        onImport={handleImportConfirm}
-      />
+      <Suspense fallback={null}>
+        <ImportModal
+          isOpen={importCardId !== null}
+          cardId={importCardId ?? ''}
+          cardName={importCard?.name ?? ''}
+          benefits={importCardDefinitions}
+          onClose={handleImportClose}
+          onImport={handleImportConfirm}
+        />
+      </Suspense>
     </div>
   );
 }

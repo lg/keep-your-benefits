@@ -8,7 +8,7 @@ interface CardHeaderProps {
   allBenefits: Benefit[];
   selectedYear: number;
   onUpdateBenefit: (id: string) => void;
-  onImportClick?: () => void;
+  onImportClick?: (cardId: string) => void;
 }
 
 function CardHeaderComponent({ card, stats, allBenefits, selectedYear, onUpdateBenefit, onImportClick }: CardHeaderProps) {
@@ -37,7 +37,7 @@ function CardHeaderComponent({ card, stats, allBenefits, selectedYear, onUpdateB
         <div className="flex items-center gap-2">
           {onImportClick && (
             <button
-              onClick={onImportClick}
+              onClick={() => onImportClick(card.id)}
               className="p-2 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-white transition-colors"
               title="Import statement"
             >

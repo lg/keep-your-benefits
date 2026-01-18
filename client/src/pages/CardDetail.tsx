@@ -1,19 +1,17 @@
-import { useState, useCallback } from 'react';
-import type { Benefit, CreditCard, BenefitDefinition } from '../types';
+import { useState, useCallback, lazy, Suspense } from 'react';
+import type { Benefit, CreditCard } from '../types';
 import { BenefitCard } from '../components/BenefitCard';
 import { CardHeader } from '../components/CardHeader';
-import { ImportModal } from '../components/ImportModal';
+import { useBenefits } from '../context/BenefitsContext';
 import { calculateStats } from '@shared/utils';
+
+const ImportModal = lazy(() => import('../components/ImportModal'));
 
 interface CardDetailProps {
   card: CreditCard;
   benefits: Benefit[];
   allBenefits: Benefit[];
-  definitions: BenefitDefinition[];
-  selectedYear: number;
   onBack: () => void;
-  onToggleEnrollment: (id: string) => void;
-  onToggleVisibility: (id: string) => void;
   onImport: (cardId: string, aggregated: Map<string, {
     periods?: Record<string, { usedAmount: number; transactions?: { date: string; description: string; amount: number }[] }>;
     transactions?: { date: string; description: string; amount: number }[];
@@ -24,16 +22,15 @@ export function CardDetail({
   card,
   benefits,
   allBenefits,
-  definitions,
-  selectedYear,
   onBack,
-  onToggleEnrollment,
-  onToggleVisibility,
   onImport
 }: CardDetailProps) {
+  const { definitions, selectedYear, onToggleEnrollment, onToggleVisibility } = useBenefits();
   const [isImportOpen, setIsImportOpen] = useState(false);
 
-  const handleImportClick = useCallback(() => {
+  const cardDefinitions = definitions.filter(d => d.cardId === card.id);
+
+  const handleImportClick = useCallback((_cardId: string) => {
     setIsImportOpen(true);
   }, []);
 
@@ -72,20 +69,21 @@ export function CardDetail({
           <BenefitCard
             key={benefit.id}
             benefit={benefit}
-            selectedYear={selectedYear}
             onToggleEnrollment={onToggleEnrollment}
           />
         ))}
       </div>
 
-      <ImportModal
-        isOpen={isImportOpen}
-        cardId={card.id}
-        cardName={card.name}
-        benefits={definitions}
-        onClose={handleImportClose}
-        onImport={handleImportConfirm}
-      />
+      <Suspense fallback={null}>
+        <ImportModal
+          isOpen={isImportOpen}
+          cardId={card.id}
+          cardName={card.name}
+          benefits={cardDefinitions}
+          onClose={handleImportClose}
+          onImport={handleImportConfirm}
+        />
+      </Suspense>
     </div>
   );
 }

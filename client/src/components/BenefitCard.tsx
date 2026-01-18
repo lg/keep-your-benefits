@@ -1,6 +1,7 @@
 import { useMemo, memo } from 'react';
 import { Benefit } from '../types';
 import { ProgressBar } from './ProgressBar';
+import { useBenefits } from '../context/BenefitsContext';
 import { buildBenefitUsageSnapshot, buildProgressSegments, formatDate } from '../utils/dateUtils';
 
 interface StatusBadgeProps {
@@ -23,11 +24,12 @@ function StatusBadge({ status }: StatusBadgeProps) {
 
 interface BenefitCardProps {
   benefit: Benefit;
-  selectedYear?: number;
   onToggleEnrollment?: (id: string) => void;
 }
 
-function BenefitCardComponent({ benefit, selectedYear, onToggleEnrollment }: BenefitCardProps) {
+function BenefitCardComponent({ benefit, onToggleEnrollment }: BenefitCardProps) {
+  const { selectedYear } = useBenefits();
+
   const snapshot = useMemo(() => 
     buildBenefitUsageSnapshot(benefit, benefit, selectedYear),
     [benefit, selectedYear]
@@ -51,7 +53,7 @@ function BenefitCardComponent({ benefit, selectedYear, onToggleEnrollment }: Ben
   }, [benefit.endDate]);
 
   const currentYear = new Date().getFullYear();
-  const isCurrentYear = !selectedYear || selectedYear === currentYear;
+  const isCurrentYear = selectedYear === currentYear;
 
   const enrollmentClass = benefit.enrollmentRequired
     ? (benefit.enrolled ? 'border-l-emerald-500' : 'border-l-red-400')

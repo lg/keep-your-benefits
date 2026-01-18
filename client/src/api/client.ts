@@ -1,11 +1,22 @@
 import type { BenefitDefinition, BenefitsStaticData, CreditCard } from '../../../shared/types';
 
-async function fetchStaticData(): Promise<BenefitsStaticData> {
-  const response = await fetch(`${import.meta.env.BASE_URL}benefits.json`);
-  if (!response.ok) {
-    throw new Error('Failed to load benefits data');
+// Cache the promise to avoid fetching benefits.json multiple times
+let cachedPromise: Promise<BenefitsStaticData> | null = null;
+
+function fetchStaticData(): Promise<BenefitsStaticData> {
+  if (!cachedPromise) {
+    cachedPromise = fetch(`${import.meta.env.BASE_URL}benefits.json`).then(
+      (response) => {
+        if (!response.ok) {
+          // Clear cache on error so retry works
+          cachedPromise = null;
+          throw new Error('Failed to load benefits data');
+        }
+        return response.json();
+      }
+    );
   }
-  return response.json();
+  return cachedPromise;
 }
 
 export const api = {

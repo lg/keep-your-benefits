@@ -1,8 +1,9 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import type { CreditCard, Benefit, BenefitDefinition, Stats } from './types';
 import { Dashboard } from './pages/Dashboard';
 import { CardDetail } from './pages/CardDetail';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { BenefitsProvider } from './context/BenefitsContext';
 import * as benefitsService from './services/benefits';
 import { api } from './api/client';
 import { importBenefitUsage } from './storage/userBenefits';
@@ -194,6 +195,13 @@ function App() {
     ? allBenefits.filter(b => b.cardId === selectedCardId)
     : [];
 
+  const benefitsContextValue = useMemo(() => ({
+    definitions,
+    selectedYear,
+    onToggleEnrollment: handleToggleEnrollment,
+    onToggleVisibility: handleToggleVisibility,
+  }), [definitions, selectedYear, handleToggleEnrollment, handleToggleVisibility]);
+
   return (
     <div className="min-h-screen bg-slate-900">
       {updateError && (
@@ -269,34 +277,29 @@ function App() {
       </header>
 
       <main className="max-w-6xl mx-auto px-4 py-8">
-        <ErrorBoundary>
-          {selectedCard ? (
+        <BenefitsProvider
+          value={benefitsContextValue}
+        >
+          <ErrorBoundary>
+            {selectedCard ? (
               <CardDetail
                 card={selectedCard}
                 benefits={selectedCardBenefits}
                 allBenefits={selectedCardAllBenefits}
-                definitions={definitions.filter(d => d.cardId === selectedCardId)}
-                selectedYear={selectedYear}
                 onBack={handleBack}
-                onToggleEnrollment={handleToggleEnrollment}
-                onToggleVisibility={handleToggleVisibility}
                 onImport={handleImport}
               />
-
-          ) : (
-            <Dashboard
-              benefits={benefits}
-              cards={cards}
-              allBenefits={allBenefits}
-              definitions={definitions}
-              stats={stats}
-              selectedYear={selectedYear}
-              onToggleEnrollment={handleToggleEnrollment}
-              onToggleVisibility={handleToggleVisibility}
-              onImport={handleImport}
-            />
-          )}
-        </ErrorBoundary>
+            ) : (
+              <Dashboard
+                benefits={benefits}
+                cards={cards}
+                allBenefits={allBenefits}
+                stats={stats}
+                onImport={handleImport}
+              />
+            )}
+          </ErrorBoundary>
+        </BenefitsProvider>
       </main>
     </div>
   );

@@ -39,7 +39,7 @@ body {
 }
 
 .modal-content {
-  @apply bg-slate-800 border border-slate-700 rounded-lg p-6 w-full max-w-md mx-4;
+  @apply bg-slate-800 border border-slate-700 rounded-lg p-6 mx-4;
 }
 
 .btn-primary {

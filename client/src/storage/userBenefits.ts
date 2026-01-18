@@ -2,43 +2,15 @@ import type {
   BenefitDefinition,
   BenefitPeriodUserState,
   BenefitUserState,
-  UserBenefitsData,
 } from '../../../shared/types';
+import {
+  getUserBenefitsData,
+  saveUserBenefitsData,
+} from '../hooks/useUserBenefitsStore';
 
-const STORAGE_KEY = 'use-your-benefits';
-
-// Module-level cache for localStorage reads
-let cachedData: UserBenefitsData | null = null;
-
-export function getUserBenefitsData(): UserBenefitsData {
-  // Return cached data if available
-  if (cachedData !== null) {
-    return cachedData;
-  }
-  
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (!stored) {
-      cachedData = { benefits: {}, importNotes: {} };
-      return cachedData;
-    }
-    const parsed = JSON.parse(stored) as UserBenefitsData;
-    cachedData = {
-      benefits: parsed.benefits ?? {},
-      importNotes: parsed.importNotes ?? {},
-    };
-    return cachedData;
-  } catch {
-    cachedData = { benefits: {}, importNotes: {} };
-    return cachedData;
-  }
-}
-
-export function saveUserBenefitsData(data: UserBenefitsData): void {
-  // Update cache when saving
-  cachedData = data;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-}
+// Re-export for convenience
+export { getUserBenefitsData, saveUserBenefitsData } from '../hooks/useUserBenefitsStore';
+export { useUserBenefitsStore } from '../hooks/useUserBenefitsStore';
 
 export function getImportNote(cardId: string): string {
   const data = getUserBenefitsData();
