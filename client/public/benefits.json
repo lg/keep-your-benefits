@@ -3,7 +3,11 @@
     {
       "id": "amex-platinum",
       "name": "American Express Platinum",
-      "annualFee": 695,
+      "annualFeeByYear": {
+        "2024": 695,
+        "2025": 695,
+        "2026": 895
+      },
       "resetBasis": "calendar-year",
       "color": "#006fcf"
     }

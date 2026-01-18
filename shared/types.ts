@@ -3,7 +3,7 @@
 export interface CreditCard {
   id: string;
   name: string;
-  annualFee: number;
+  annualFeeByYear: Record<string, number>;
   color: string;
 }
 

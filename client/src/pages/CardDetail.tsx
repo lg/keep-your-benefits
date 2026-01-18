@@ -72,6 +72,7 @@ export function CardDetail({
         card={card} 
         stats={calculateStats(benefits, selectedYear)} 
         allBenefits={allBenefits}
+        selectedYear={selectedYear}
         onUpdateBenefit={onToggleVisibility}
         onImportClick={handleImportClick}
       />

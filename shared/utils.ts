@@ -1,6 +1,6 @@
 // Shared utility functions used by both backend and frontend
 
-import type { Benefit, CardStats, ProgressSegment, BenefitDefinition, BenefitPeriodDefinition, StoredTransaction } from './types';
+import type { Benefit, CardStats, CreditCard, ProgressSegment, BenefitDefinition, BenefitPeriodDefinition, StoredTransaction } from './types';
 
 export function formatDate(dateString: string): string {
   const date = new Date(dateString);
@@ -281,6 +281,14 @@ export function buildProgressSegments(
     daysLeft: period.isCurrent ? period.daysLeft : undefined,
     isCurrent: period.isCurrent
   }));
+}
+
+export function getAnnualFee(card: CreditCard, year: number): number {
+  return card.annualFeeByYear[year.toString()] ?? 0;
+}
+
+export function getTotalAnnualFee(cards: CreditCard[], year: number): number {
+  return cards.reduce((sum, card) => sum + getAnnualFee(card, year), 0);
 }
 
 export function calculateStats(benefits: Benefit[], year?: number): CardStats {

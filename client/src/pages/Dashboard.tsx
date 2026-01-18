@@ -5,7 +5,7 @@ import { CardHeader } from '../components/CardHeader';
 import { DetailsModal } from '../components/DetailsModal';
 import { ImportModal } from '../components/ImportModal';
 import { useDetailsModal } from '../hooks/useDetailsModal';
-import { calculateStats } from '@shared/utils';
+import { calculateStats, getTotalAnnualFee } from '@shared/utils';
 
 interface DashboardProps {
   benefits: Benefit[];
@@ -85,7 +85,7 @@ export function Dashboard({
             <p className="text-2xl font-bold">${stats.totalValue}</p>
           </div>
           <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
-            <p className="text-slate-400 text-sm">Used</p>
+            <p className="text-slate-400 text-sm">Used (${getTotalAnnualFee(cards, selectedYear)} fee)</p>
             <p className="text-2xl font-bold text-emerald-400">${stats.usedValue.toFixed(0)}</p>
           </div>
           <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
@@ -116,6 +116,7 @@ export function Dashboard({
               card={card} 
               stats={calculateStats(cardBenefits, selectedYear)}
               allBenefits={cardAllBenefits}
+              selectedYear={selectedYear}
               onUpdateBenefit={onToggleVisibility}
               onImportClick={() => handleImportClick(card.id)}
             />

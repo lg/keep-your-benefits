@@ -1,15 +1,17 @@
 import { useState, useCallback, memo } from 'react';
 import type { CreditCard, Benefit, CardStats } from '../types';
+import { getAnnualFee } from '@shared/utils';
 
 interface CardHeaderProps {
   card: CreditCard;
   stats?: CardStats;
   allBenefits: Benefit[];
+  selectedYear: number;
   onUpdateBenefit: (id: string) => void;
   onImportClick?: () => void;
 }
 
-function CardHeaderComponent({ card, stats, allBenefits, onUpdateBenefit, onImportClick }: CardHeaderProps) {
+function CardHeaderComponent({ card, stats, allBenefits, selectedYear, onUpdateBenefit, onImportClick }: CardHeaderProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
   const percentUsed = stats 
@@ -30,7 +32,7 @@ function CardHeaderComponent({ card, stats, allBenefits, onUpdateBenefit, onImpo
       <div className="flex justify-between items-start">
         <div>
           <h2 className="text-2xl font-bold">{card.name}</h2>
-          <p className="text-slate-400">${card.annualFee}/year annual fee</p>
+          <p className="text-slate-400">${getAnnualFee(card, selectedYear)}/year annual fee in {selectedYear}</p>
         </div>
         <div className="flex items-center gap-2">
           {onImportClick && (
