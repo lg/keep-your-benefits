@@ -8,17 +8,12 @@ interface ProgressBarProps {
   onSegmentClick?: (segment: ProgressSegment) => void;
 }
 
-const segmentClass = (status: ProgressSegment['status']) => {
-  switch (status) {
-    case 'completed':
-      return 'progress-segment completed';
-    case 'partial':
-      return 'progress-segment partial';
-    case 'missed':
-      return 'progress-segment missed';
-    default:
-      return 'progress-segment pending';
-  }
+const segmentClass = (segment: ProgressSegment) => {
+  if (segment.status === 'completed') return 'progress-segment completed';
+  if (segment.status === 'missed') return 'progress-segment missed';
+  // pending status: yellow if current, gray if future
+  if (segment.isCurrent) return 'progress-segment current';
+  return 'progress-segment pending';
 };
 
 function ProgressBarComponent({ segments, segmentsCount, onSegmentClick }: ProgressBarProps) {
@@ -32,7 +27,7 @@ function ProgressBarComponent({ segments, segmentsCount, onSegmentClick }: Progr
             key={index}
             role={isClickable ? 'button' : undefined}
             tabIndex={isClickable ? 0 : undefined}
-            className={`flex-1 relative ${segment ? segmentClass(segment.status) : 'bg-slate-700'} ${isClickable ? 'cursor-pointer' : ''}`}
+            className={`flex-1 relative ${segment ? segmentClass(segment) : 'bg-slate-700'} ${isClickable ? 'cursor-pointer' : ''}`}
             {...(isClickable ? {
               onClick: () => onSegmentClick(segment),
               onKeyDown: e => {

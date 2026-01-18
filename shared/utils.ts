@@ -35,7 +35,7 @@ export function getTimeProgress(startDate: string, endDate: string): number {
 export interface BenefitUsageSnapshot {
   periods: BenefitPeriodWithUsage[];
   currentUsed: number;
-  status: 'pending' | 'partial' | 'completed' | 'missed';
+  status: 'pending' | 'completed' | 'missed';
   yearTransactions: StoredTransaction[];
   claimedElsewhereYear?: number;
   effectiveStartDate: string;
@@ -51,7 +51,7 @@ export interface BenefitPeriodWithUsage {
   endDate: string;
   usedAmount: number;
   transactions: StoredTransaction[];
-  status: 'pending' | 'partial' | 'completed' | 'missed';
+  status: 'pending' | 'completed' | 'missed';
   isCurrent: boolean;
   timeProgress: number;
   daysLeft: number;
@@ -89,24 +89,24 @@ function deriveSegmentStatus(
   referenceDate: Date,
   isPastYear: boolean,
   isPastYearView: boolean
-): { status: 'pending' | 'partial' | 'completed' | 'missed'; isCurrent: boolean; timeProgress?: number; daysLeft?: number } {
+): { status: 'pending' | 'completed' | 'missed'; isCurrent: boolean; timeProgress?: number; daysLeft?: number } {
   const start = new Date(startDate);
   const end = new Date(endDate);
   const isFuture = referenceDate < start;
   const isPast = referenceDate > end;
   const isCurrent = !isFuture && !isPast;
-  const completionEpsilon = 0.01;
-  const isComplete = usedAmount + completionEpsilon >= segmentValue;
+  
+  // 50% threshold for completion
+  const threshold = segmentValue * 0.5;
+  const isComplete = usedAmount >= threshold;
 
-  let status: 'pending' | 'partial' | 'completed' | 'missed';
+  let status: 'pending' | 'completed' | 'missed';
   if (isComplete) {
     status = 'completed';
-  } else if (usedAmount > 0) {
-    status = 'partial';
   } else if (isPast || isPastYear) {
     status = 'missed';
   } else {
-    status = 'pending';
+    status = 'pending'; // current or future
   }
 
   if (isCurrent && !isPastYearView) {
@@ -231,28 +231,23 @@ export function buildBenefitUsageSnapshot(
 
   const currentUsed = periods.reduce((sum, p) => sum + p.usedAmount, 0);
 
-   let overallStatus: 'pending' | 'partial' | 'completed' | 'missed';
+  let overallStatus: 'pending' | 'completed' | 'missed';
   if (claimedElsewhereYear) {
     overallStatus = 'completed';
+  } else if (isPastYearView) {
+    // Past year: all completed = completed, otherwise missed
+    const allComplete = periods.every(p => p.status === 'completed');
+    overallStatus = allComplete ? 'completed' : 'missed';
   } else {
-     const hasMissed = periods.some(p => p.status === 'missed');
-     const allComplete = periods.every(p => p.status === 'completed');
-     const hasPartial = periods.some(p => p.status === 'partial');
-     if (allComplete) {
-       overallStatus = 'completed';
-     } else if (hasMissed) {
-       overallStatus = 'missed';
-     } else if (hasPartial) {
-       overallStatus = 'partial';
-     } else {
-       overallStatus = 'pending';
-     }
-
+    // Current year: use last segment's status
+    const lastPeriod = periods[periods.length - 1];
+    overallStatus = lastPeriod?.status ?? 'pending';
   }
 
   if (!definition.periods || definition.periods.length === 0) {
-    const completionEpsilon = 0.01;
-    if (currentUsed + completionEpsilon >= definition.creditAmount) {
+    // For single-period benefits, use 50% threshold
+    const threshold = definition.creditAmount * 0.5;
+    if (currentUsed >= threshold) {
       overallStatus = 'completed';
     }
   }
