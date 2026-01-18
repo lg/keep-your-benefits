@@ -239,9 +239,9 @@ export function buildBenefitUsageSnapshot(
     const allComplete = periods.every(p => p.status === 'completed');
     overallStatus = allComplete ? 'completed' : 'missed';
   } else {
-    // Current year: use last segment's status
-    const lastPeriod = periods[periods.length - 1];
-    overallStatus = lastPeriod?.status ?? 'pending';
+    // Current year: use the current segment's status
+    const currentPeriod = periods.find(p => p.isCurrent);
+    overallStatus = currentPeriod?.status ?? 'pending';
   }
 
   if (!definition.periods || definition.periods.length === 0) {
