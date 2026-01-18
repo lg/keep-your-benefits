@@ -67,6 +67,7 @@ export type Benefit = Omit<BenefitDefinition, 'periods'> &
     periods?: BenefitPeriod[];
     card?: CreditCard;
     claimedElsewhereYear?: number;
+    autoEnrolledAt?: string; // Derived: ISO date of earliest credit for enrollment-required benefits
   };
 
 

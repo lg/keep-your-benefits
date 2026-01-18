@@ -138,6 +138,7 @@ function App() {
     setTransactionVersion(v => v + 1);
     
     // Refresh benefits from storage (transactions are now derived via matcher)
+    // Auto-enrollment is derived in mergeBenefit based on detected credits
     const allBenefitsData = await benefitsService.getBenefits(undefined, true, selectedYear);
     const benefitsData = allBenefitsData.filter(b => !b.ignored);
     const statsData = await benefitsService.getStats(selectedYear);

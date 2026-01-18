@@ -4,9 +4,10 @@ import { createPortal } from 'react-dom';
 interface TooltipProps {
   content: ReactNode;
   children?: ReactElement;
+  inline?: boolean;
 }
 
-function TooltipComponent({ content, children }: TooltipProps) {
+function TooltipComponent({ content, children, inline }: TooltipProps) {
   const [visible, setVisible] = useState(false);
   const [position, setPosition] = useState<{ x: number; y: number } | null>(null);
 
@@ -34,7 +35,7 @@ function TooltipComponent({ content, children }: TooltipProps) {
 
   return (
     <div
-      className="relative w-full h-full"
+      className={inline ? "relative inline-block" : "relative w-full h-full"}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >

@@ -95,9 +95,25 @@ function mergeBenefit(
     allDefinitions
   );
   
+  // Derive auto-enrollment: if benefit requires enrollment and has any transactions,
+  // it's auto-enrolled based on the earliest credit date
+  let autoEnrolledAt: string | undefined;
+  let enrolled = resolvedUserState.enrolled;
+  
+  if (definition.enrollmentRequired && derivedTransactions.length > 0) {
+    // Find the earliest transaction date
+    const sortedDates = derivedTransactions
+      .map(t => new Date(t.date))
+      .sort((a, b) => a.getTime() - b.getTime());
+    autoEnrolledAt = sortedDates[0].toISOString();
+    // Auto-enroll when we have credits
+    enrolled = true;
+  }
+  
   // Merge derived transactions with user state for snapshot calculation
   const stateWithTransactions = {
     ...resolvedUserState,
+    enrolled,
     transactions: derivedTransactions,
   };
   
@@ -106,6 +122,8 @@ function mergeBenefit(
   return {
     ...definition,
     ...resolvedUserState,
+    enrolled,
+    autoEnrolledAt,
     currentUsed: snapshot.currentUsed,
     periods: snapshot.periods as unknown as Benefit['periods'],
     status: snapshot.status,

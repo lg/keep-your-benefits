@@ -1,6 +1,7 @@
 import { useMemo, memo } from 'react';
 import { Benefit } from '../types';
 import { ProgressBar } from './ProgressBar';
+import { Tooltip } from './Tooltip';
 import { useBenefits } from '../context/BenefitsContext';
 import { buildBenefitUsageSnapshot, buildProgressSegments, formatDate } from '../utils/dateUtils';
 
@@ -92,16 +93,29 @@ function BenefitCardComponent({ benefit, onToggleEnrollment }: BenefitCardProps)
         </div>
         <div className="flex gap-2">
           {benefit.enrollmentRequired && isCurrentYear ? (
-            <button
-              onClick={() => onToggleEnrollment?.(benefit.id)}
-              className={`inline-flex items-center text-[11px] px-2 py-0.5 rounded border leading-tight transition-colors hover:opacity-80 ${
-                benefit.enrolled
-                  ? 'border-emerald-400/50 text-emerald-400 bg-emerald-500/10'
-                  : 'border-red-400/60 text-red-400 bg-red-400/10'
-              }`}
-            >
-              {benefit.enrolled ? 'Enrolled' : 'Needs Enrollment'}
-            </button>
+            benefit.autoEnrolledAt ? (
+              // Auto-enrolled: non-clickable badge with tooltip
+              <Tooltip
+                content={`Enrolled due to credit on ${formatDate(benefit.autoEnrolledAt)}`}
+                inline
+              >
+                <span className="inline-flex items-center text-[11px] px-2 py-0.5 rounded border leading-tight border-emerald-400/50 text-emerald-400 bg-emerald-500/10 cursor-default">
+                  Enrolled
+                </span>
+              </Tooltip>
+            ) : (
+              // Manual enrollment: clickable toggle
+              <button
+                onClick={() => onToggleEnrollment?.(benefit.id)}
+                className={`inline-flex items-center text-[11px] px-2 py-0.5 rounded border leading-tight transition-colors hover:opacity-80 ${
+                  benefit.enrolled
+                    ? 'border-emerald-400/50 text-emerald-400 bg-emerald-500/10'
+                    : 'border-red-400/60 text-red-400 bg-red-400/10'
+                }`}
+              >
+                {benefit.enrolled ? 'Enrolled' : 'Needs Enrollment'}
+              </button>
+            )
           ) : null}
         </div>
       </div>
