@@ -96,14 +96,14 @@ function DetailsModalComponent({ benefit, isOpen, onClose, onToggleActivation, o
   const formatPeriodLabel = (startDate: string, endDate: string) => {
     const start = new Date(startDate);
     const end = new Date(endDate);
-    const startLabel = start.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-    const endLabel = end.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+    const startLabel = start.toLocaleDateString('en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' });
+    const endLabel = end.toLocaleDateString('en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' });
     return `${startLabel} – ${endLabel}`;
   };
 
   const formatDateLabel = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
   };
 
   const getPeriodTransactions = (): StoredTransaction[] => {
