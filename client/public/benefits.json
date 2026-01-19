@@ -10,6 +10,16 @@
       },
       "resetBasis": "calendar-year",
       "color": "#006fcf"
+    },
+    {
+      "id": "chase-sapphire-reserve",
+      "name": "Chase Sapphire Reserve",
+      "annualFeeByYear": {
+        "2025": 550,
+        "2026": 695
+      },
+      "resetBasis": "calendar-year",
+      "color": "#117aca"
     }
   ],
   "benefits": [
@@ -483,6 +493,290 @@
       "startDate": "2026-01-01T00:00:00Z",
       "endDate": "2029-12-31T23:59:59Z",
       "category": "Travel",
+      "ignored": false,
+      "currentUsed": 0,
+      "status": "pending",
+      "enrolled": false
+    },
+    {
+      "id": "csr-travel-credit",
+      "cardId": "chase-sapphire-reserve",
+      "name": "Travel Credit",
+      "shortDescription": "$300 annually for travel purchases",
+      "fullDescription": "Receive up to $300 in statement credits each calendar year for travel purchases. Credits apply automatically to eligible travel spend.",
+      "creditAmount": 300,
+      "resetFrequency": "annual",
+      "enrollmentRequired": false,
+      "startDate": "2026-01-01T00:00:00Z",
+      "endDate": "2026-12-31T23:59:59Z",
+      "category": "Travel",
+      "ignored": false,
+      "currentUsed": 0,
+      "status": "pending",
+      "enrolled": false
+    },
+    {
+      "id": "csr-global-entry",
+      "cardId": "chase-sapphire-reserve",
+      "name": "Global Entry/TSA PreCheck",
+      "shortDescription": "$120 every 4 years",
+      "fullDescription": "Receive one statement credit up to $120 for a Global Entry, TSA PreCheck, or NEXUS application fee once every 4 years.",
+      "creditAmount": 120,
+      "resetFrequency": "annual",
+      "enrollmentRequired": false,
+      "startDate": "2026-01-01T00:00:00Z",
+      "endDate": "2029-12-31T23:59:59Z",
+      "category": "Travel",
+      "ignored": false,
+      "currentUsed": 0,
+      "status": "pending",
+      "enrolled": false
+    },
+    {
+      "id": "csr-edit-hotel",
+      "cardId": "chase-sapphire-reserve",
+      "name": "The Edit Hotel Credit",
+      "shortDescription": "$500 annually for The Edit bookings",
+      "fullDescription": "Receive up to $500 in annual statement credits for prepaid bookings made with The Edit by Chase Travel, with a maximum of $250 per transaction.",
+      "creditAmount": 500,
+      "resetFrequency": "annual",
+      "enrollmentRequired": false,
+      "startDate": "2026-01-01T00:00:00Z",
+      "endDate": "2026-12-31T23:59:59Z",
+      "category": "Travel",
+      "ignored": false,
+      "currentUsed": 0,
+      "status": "pending",
+      "enrolled": false
+    },
+    {
+      "id": "csr-dining-exclusive-tables",
+      "cardId": "chase-sapphire-reserve",
+      "name": "Exclusive Tables Dining",
+      "shortDescription": "$300 annually ($150 twice per year)",
+      "fullDescription": "Receive up to $300 in statement credits annually for Sapphire Reserve Exclusive Tables dining, split as $150 for January-June and $150 for July-December.",
+      "creditAmount": 300,
+      "resetFrequency": "twice-yearly",
+      "enrollmentRequired": false,
+      "startDate": "2026-01-01T00:00:00Z",
+      "endDate": "2026-12-31T23:59:59Z",
+      "category": "Dining",
+      "periods": [
+        {
+          "id": "csr-dining-exclusive-tables-h1-2026",
+          "startDate": "2026-01-01T00:00:00Z",
+          "endDate": "2026-06-30T23:59:59Z"
+        },
+        {
+          "id": "csr-dining-exclusive-tables-h2-2026",
+          "startDate": "2026-07-01T00:00:00Z",
+          "endDate": "2026-12-31T23:59:59Z"
+        }
+      ],
+      "ignored": false,
+      "currentUsed": 0,
+      "status": "pending",
+      "enrolled": false
+    },
+    {
+      "id": "csr-doordash",
+      "cardId": "chase-sapphire-reserve",
+      "name": "DoorDash Credit",
+      "shortDescription": "$300 annually ($25 monthly)",
+      "fullDescription": "Receive $25 in monthly DoorDash credits, totaling up to $300 annually when enrolled.",
+      "creditAmount": 300,
+      "resetFrequency": "monthly",
+      "enrollmentRequired": true,
+      "startDate": "2026-01-01T00:00:00Z",
+      "endDate": "2026-12-31T23:59:59Z",
+      "category": "Dining",
+      "periods": [
+        {
+          "id": "csr-doordash-2026-01",
+          "startDate": "2026-01-01T00:00:00Z",
+          "endDate": "2026-01-31T23:59:59Z"
+        },
+        {
+          "id": "csr-doordash-2026-02",
+          "startDate": "2026-02-01T00:00:00Z",
+          "endDate": "2026-02-28T23:59:59Z"
+        },
+        {
+          "id": "csr-doordash-2026-03",
+          "startDate": "2026-03-01T00:00:00Z",
+          "endDate": "2026-03-31T23:59:59Z"
+        },
+        {
+          "id": "csr-doordash-2026-04",
+          "startDate": "2026-04-01T00:00:00Z",
+          "endDate": "2026-04-30T23:59:59Z"
+        },
+        {
+          "id": "csr-doordash-2026-05",
+          "startDate": "2026-05-01T00:00:00Z",
+          "endDate": "2026-05-31T23:59:59Z"
+        },
+        {
+          "id": "csr-doordash-2026-06",
+          "startDate": "2026-06-01T00:00:00Z",
+          "endDate": "2026-06-30T23:59:59Z"
+        },
+        {
+          "id": "csr-doordash-2026-07",
+          "startDate": "2026-07-01T00:00:00Z",
+          "endDate": "2026-07-31T23:59:59Z"
+        },
+        {
+          "id": "csr-doordash-2026-08",
+          "startDate": "2026-08-01T00:00:00Z",
+          "endDate": "2026-08-31T23:59:59Z"
+        },
+        {
+          "id": "csr-doordash-2026-09",
+          "startDate": "2026-09-01T00:00:00Z",
+          "endDate": "2026-09-30T23:59:59Z"
+        },
+        {
+          "id": "csr-doordash-2026-10",
+          "startDate": "2026-10-01T00:00:00Z",
+          "endDate": "2026-10-31T23:59:59Z"
+        },
+        {
+          "id": "csr-doordash-2026-11",
+          "startDate": "2026-11-01T00:00:00Z",
+          "endDate": "2026-11-30T23:59:59Z"
+        },
+        {
+          "id": "csr-doordash-2026-12",
+          "startDate": "2026-12-01T00:00:00Z",
+          "endDate": "2026-12-31T23:59:59Z"
+        }
+      ],
+      "ignored": false,
+      "currentUsed": 0,
+      "status": "pending",
+      "enrolled": false
+    },
+    {
+      "id": "csr-lyft",
+      "cardId": "chase-sapphire-reserve",
+      "name": "Lyft Credit",
+      "shortDescription": "$120 annually ($10 monthly)",
+      "fullDescription": "Receive $10 in monthly Lyft credits, totaling up to $120 annually when enrolled.",
+      "creditAmount": 120,
+      "resetFrequency": "monthly",
+      "enrollmentRequired": true,
+      "startDate": "2026-01-01T00:00:00Z",
+      "endDate": "2026-12-31T23:59:59Z",
+      "category": "Transportation",
+      "periods": [
+        {
+          "id": "csr-lyft-2026-01",
+          "startDate": "2026-01-01T00:00:00Z",
+          "endDate": "2026-01-31T23:59:59Z"
+        },
+        {
+          "id": "csr-lyft-2026-02",
+          "startDate": "2026-02-01T00:00:00Z",
+          "endDate": "2026-02-28T23:59:59Z"
+        },
+        {
+          "id": "csr-lyft-2026-03",
+          "startDate": "2026-03-01T00:00:00Z",
+          "endDate": "2026-03-31T23:59:59Z"
+        },
+        {
+          "id": "csr-lyft-2026-04",
+          "startDate": "2026-04-01T00:00:00Z",
+          "endDate": "2026-04-30T23:59:59Z"
+        },
+        {
+          "id": "csr-lyft-2026-05",
+          "startDate": "2026-05-01T00:00:00Z",
+          "endDate": "2026-05-31T23:59:59Z"
+        },
+        {
+          "id": "csr-lyft-2026-06",
+          "startDate": "2026-06-01T00:00:00Z",
+          "endDate": "2026-06-30T23:59:59Z"
+        },
+        {
+          "id": "csr-lyft-2026-07",
+          "startDate": "2026-07-01T00:00:00Z",
+          "endDate": "2026-07-31T23:59:59Z"
+        },
+        {
+          "id": "csr-lyft-2026-08",
+          "startDate": "2026-08-01T00:00:00Z",
+          "endDate": "2026-08-31T23:59:59Z"
+        },
+        {
+          "id": "csr-lyft-2026-09",
+          "startDate": "2026-09-01T00:00:00Z",
+          "endDate": "2026-09-30T23:59:59Z"
+        },
+        {
+          "id": "csr-lyft-2026-10",
+          "startDate": "2026-10-01T00:00:00Z",
+          "endDate": "2026-10-31T23:59:59Z"
+        },
+        {
+          "id": "csr-lyft-2026-11",
+          "startDate": "2026-11-01T00:00:00Z",
+          "endDate": "2026-11-30T23:59:59Z"
+        },
+        {
+          "id": "csr-lyft-2026-12",
+          "startDate": "2026-12-01T00:00:00Z",
+          "endDate": "2026-12-31T23:59:59Z"
+        }
+      ],
+      "ignored": false,
+      "currentUsed": 0,
+      "status": "pending",
+      "enrolled": false
+    },
+    {
+      "id": "csr-peloton",
+      "cardId": "chase-sapphire-reserve",
+      "name": "Peloton Credit",
+      "shortDescription": "$120 annually for Peloton",
+      "fullDescription": "Receive up to $120 in statement credits annually for eligible Peloton memberships when enrolled.",
+      "creditAmount": 120,
+      "resetFrequency": "annual",
+      "enrollmentRequired": true,
+      "startDate": "2026-01-01T00:00:00Z",
+      "endDate": "2026-12-31T23:59:59Z",
+      "category": "Wellness",
+      "ignored": false,
+      "currentUsed": 0,
+      "status": "pending",
+      "enrolled": false
+    },
+    {
+      "id": "csr-stubhub",
+      "cardId": "chase-sapphire-reserve",
+      "name": "StubHub/viagogo Credit",
+      "shortDescription": "$300 annually ($150 twice per year)",
+      "fullDescription": "Receive up to $300 in annual statement credits for StubHub or viagogo purchases, split as $150 for January-June and $150 for July-December when enrolled.",
+      "creditAmount": 300,
+      "resetFrequency": "twice-yearly",
+      "enrollmentRequired": true,
+      "startDate": "2026-01-01T00:00:00Z",
+      "endDate": "2026-12-31T23:59:59Z",
+      "category": "Entertainment",
+      "periods": [
+        {
+          "id": "csr-stubhub-h1-2026",
+          "startDate": "2026-01-01T00:00:00Z",
+          "endDate": "2026-06-30T23:59:59Z"
+        },
+        {
+          "id": "csr-stubhub-h2-2026",
+          "startDate": "2026-07-01T00:00:00Z",
+          "endDate": "2026-12-31T23:59:59Z"
+        }
+      ],
       "ignored": false,
       "currentUsed": 0,
       "status": "pending",

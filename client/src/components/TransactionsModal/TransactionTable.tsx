@@ -5,22 +5,26 @@ import { matchCredits } from '../../services/benefitMatcher';
 import { Tooltip } from '../Tooltip';
 
 /**
- * Check if a transaction is an Amex benefit credit (negative amount, contains Amex identifier, not a payment)
- * Amex credits can contain: "Platinum", "Plat", "AMEX", or "Amex"
+ * Check if a transaction is a benefit credit based on card type
+ * Amex: credits are negative amounts with Amex identifier
+ * Chase: credits are transactions with type "Adjustment"
  */
-function isAmexBenefitCredit(amount: number, description: string): boolean {
-  if (amount >= 0) return false;
-  
+function isBenefitCredit(amount: number, description: string, cardId: string, type?: string): boolean {
   const descLower = description.toLowerCase();
   
-  // Exclude payment transactions
-  if (descLower.includes('payment') || descLower.includes('autopay')) return false;
+  if (cardId.startsWith('amex')) {
+    // Amex: credits are negative, must have Amex identifier
+    if (amount >= 0) return false;
+    if (descLower.includes('payment') || descLower.includes('autopay')) return false;
+    return /platinum|plat\b|amex/i.test(description);
+  }
   
-  // Must contain an Amex identifier to be an Amex benefit credit
-  const hasAmexIdentifier = /platinum|plat\b|amex/i.test(description);
-  if (!hasAmexIdentifier) return false;
+  if (cardId.startsWith('chase')) {
+    // Chase: credits are "Adjustment" type transactions
+    return type?.toLowerCase() === 'adjustment';
+  }
   
-  return true;
+  return false;
 }
 
 interface TransactionTableProps {
@@ -62,9 +66,9 @@ function TransactionTableComponent({
   definitions,
 }: TransactionTableProps) {
   const displayTransactions = useMemo((): DisplayTransaction[] => {
-    // Filter for Amex benefit credits (negative amounts with "Platinum" in description)
+    // Filter for benefit credits based on card type
     const credits: ParsedTransaction[] = transactions
-      .filter(tx => isAmexBenefitCredit(tx.amount, tx.description))
+      .filter(tx => isBenefitCredit(tx.amount, tx.description, cardId, tx.type))
       .map(tx => ({
         date: new Date(tx.date),
         description: tx.description,
@@ -86,7 +90,7 @@ function TransactionTableComponent({
     return transactions
       .map(tx => {
         const date = new Date(tx.date);
-        const txIsCredit = isAmexBenefitCredit(tx.amount, tx.description);
+        const txIsCredit = isBenefitCredit(tx.amount, tx.description, cardId, tx.type);
         const key = `${date.getTime()}-${tx.description}-${tx.amount}`;
         
         return {

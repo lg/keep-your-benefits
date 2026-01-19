@@ -32,4 +32,4 @@ export interface ImportUsage {
   transactions?: StoredTransaction[];
 }
 
-export type CardType = 'amex-platinum';
+export type CardType = 'amex-platinum' | 'chase-sapphire-reserve';

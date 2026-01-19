@@ -13,6 +13,7 @@ export interface StoredTransaction {
   date: string;
   description: string;
   amount: number;
+  type?: string; // Transaction type (e.g., "Adjustment", "Sale", "Return" for Chase)
 }
 
 export interface BenefitPeriodDefinition {

@@ -35,9 +35,23 @@ const AMEX_PLATINUM_PATTERNS: BenefitPattern[] = [
   { pattern: /global.*entry|tsa.*precheck|nexus/i, benefitId: 'amex-global-entry' },
 ];
 
+// Chase Sapphire Reserve credit patterns
+// Based on actual credit descriptions from Chase statements (e.g., "TRAVEL CREDIT $300/YEAR")
+const CHASE_SAPPHIRE_PATTERNS: BenefitPattern[] = [
+  { pattern: /travel\s*credit/i, benefitId: 'csr-travel-credit' },
+  { pattern: /the\s*edit/i, benefitId: 'csr-edit-hotel' },
+  { pattern: /exclusive\s*tables/i, benefitId: 'csr-dining-exclusive-tables' },
+  { pattern: /doordash/i, benefitId: 'csr-doordash' },
+  { pattern: /lyft/i, benefitId: 'csr-lyft' },
+  { pattern: /peloton/i, benefitId: 'csr-peloton' },
+  { pattern: /stubhub|viagogo/i, benefitId: 'csr-stubhub' },
+  { pattern: /global\s*entry|tsa\s*precheck|nexus/i, benefitId: 'csr-global-entry' },
+];
+
 // Map card types to their patterns
 const CARD_PATTERNS: Record<CardType, BenefitPattern[]> = {
   'amex-platinum': AMEX_PLATINUM_PATTERNS,
+  'chase-sapphire-reserve': CHASE_SAPPHIRE_PATTERNS,
 };
 
 /**

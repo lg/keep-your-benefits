@@ -20,21 +20,26 @@ import { matchCredits } from './benefitMatcher';
 import type { CardType, ParsedTransaction } from '../types/import';
 
 /**
- * Check if a transaction is a credit (negative amount, not a payment)
+ * Check if a transaction is a benefit credit based on card type
+ * Amex: credits are negative amounts with Amex identifier
+ * Chase: credits are transactions with type "Adjustment"
  */
-function isCredit(amount: number, description: string): boolean {
-  if (amount >= 0) {
-    return false;
-  }
-  
+function isCredit(amount: number, description: string, cardId: string, type?: string): boolean {
   const descLower = description.toLowerCase();
   
-  // Exclude payment transactions (they're also negative)
-  if (descLower.includes('payment') || descLower.includes('autopay')) {
-    return false;
+  if (cardId.startsWith('amex')) {
+    // Amex: credits are negative, must have Amex identifier
+    if (amount >= 0) return false;
+    if (descLower.includes('payment') || descLower.includes('autopay')) return false;
+    return /platinum|plat\b|amex/i.test(description);
   }
   
-  return true;
+  if (cardId.startsWith('chase')) {
+    // Chase: credits are "Adjustment" type transactions
+    return type?.toLowerCase() === 'adjustment';
+  }
+  
+  return false;
 }
 
 /**
@@ -52,9 +57,9 @@ function deriveBenefitTransactions(
   }
 
   // Convert stored transactions to ParsedTransaction format for the matcher
-  // Filter for credits (negative amounts, excluding payments)
+  // Filter for credits based on card type
   const credits: ParsedTransaction[] = cardStore.transactions
-    .filter(tx => isCredit(tx.amount, tx.description))
+    .filter(tx => isCredit(tx.amount, tx.description, cardId, tx.type))
     .map(tx => ({
       date: new Date(tx.date),
       description: tx.description,
