@@ -3,25 +3,19 @@ import type { Benefit } from '@shared/types';
 import { ProgressBar } from './ProgressBar';
 import { Tooltip } from './Tooltip';
 import { useBenefits } from '../context/BenefitsContext';
-import { buildBenefitUsageSnapshot, buildProgressSegments, formatDate } from '../utils/dateUtils';
+import { buildBenefitUsageSnapshot, buildProgressSegments, formatDate, getDaysUntilExpiry } from '../utils/dateUtils';
 
-interface StatusBadgeProps {
-  status: 'pending' | 'completed' | 'missed';
-}
+const STATUS_COLORS = {
+  pending: 'bg-amber-400 text-slate-900',
+  completed: 'bg-emerald-500 text-white',
+  missed: 'bg-red-500 text-white',
+} as const;
 
-function StatusBadge({ status }: StatusBadgeProps) {
-  const colors = {
-    pending: 'bg-amber-400 text-slate-900',
-    completed: 'bg-emerald-500 text-white',
-    missed: 'bg-red-500 text-white',
-  };
-
-  return (
-    <span className={`px-2 py-0.5 rounded text-xs font-medium ${colors[status]}`}>
-      {status.charAt(0).toUpperCase() + status.slice(1)}
-    </span>
-  );
-}
+const StatusBadge = ({ status }: { status: keyof typeof STATUS_COLORS }) => (
+  <span className={`px-2 py-0.5 rounded text-xs font-medium capitalize ${STATUS_COLORS[status]}`}>
+    {status}
+  </span>
+);
 
 interface BenefitCardProps {
   benefit: Benefit;
@@ -46,12 +40,7 @@ function BenefitCardComponent({ benefit, onToggleEnrollment }: BenefitCardProps)
     [snapshot.periods]
   );
 
-  const daysUntilExpiry = useMemo(() => {
-    const expiry = new Date(benefit.endDate);
-    const now = new Date();
-    const diff = expiry.getTime() - now.getTime();
-    return Math.ceil(diff / (1000 * 60 * 60 * 24));
-  }, [benefit.endDate]);
+  const daysUntilExpiry = useMemo(() => getDaysUntilExpiry(benefit.endDate), [benefit.endDate]);
 
   const currentYear = new Date().getFullYear();
   const isCurrentYear = selectedYear === currentYear;

@@ -2,13 +2,14 @@
 
 import type { Benefit, CardStats, CreditCard, ProgressSegment, BenefitDefinition, BenefitPeriodDefinition, StoredTransaction } from './types';
 
-export function formatDate(dateString: string): string {
-  const date = new Date(dateString);
+export function formatDate(input: string | Date, options?: { includeYear?: boolean }): string {
+  const date = typeof input === 'string' ? new Date(input) : input;
+  const { includeYear = true } = options ?? {};
   return date.toLocaleDateString('en-US', {
-    year: 'numeric',
     month: 'short',
     day: 'numeric',
-    timeZone: 'UTC'
+    ...(includeYear && { year: 'numeric' }),
+    timeZone: 'UTC',
   });
 }
 

@@ -100,15 +100,11 @@ export interface Stats {
   missedCount: number;
 }
 
-export interface CardStats {
-  totalBenefits: number;
-  totalValue: number;
-  usedValue: number;
-  currentPeriodCompletedCount: number;
-  ytdCompletedPeriods: number;
-  ytdTotalPeriods: number;
-  pendingCount: number;
-  missedCount: number;
+export type CardStats = Stats;
+
+// Transaction status for card data imports
+export interface TransactionStatus {
+  dateRange: { min: Date; max: Date } | null;
 }
 
 // Progress segment type used by UI components

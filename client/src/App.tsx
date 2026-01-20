@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useMemo, lazy, Suspense } from 'react';
-import type { CreditCard, Benefit, BenefitDefinition, Stats } from './types';
+import type { CreditCard, Benefit, BenefitDefinition, Stats } from '@shared/types';
 import { Dashboard } from './pages/Dashboard';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { BenefitsProvider } from './context/BenefitsContext';
@@ -138,13 +138,9 @@ function App() {
   // transactionVersion triggers recomputation when transactions change
   const cardTransactionStatus = useMemo(() => {
     void transactionVersion; // Used to trigger recomputation
-    const status: Record<string, { hasData: boolean; dateRange: { min: Date; max: Date } | null }> = {};
+    const status: Record<string, { dateRange: { min: Date; max: Date } | null }> = {};
     for (const card of cards) {
-      const dateRange = getCardTransactionDateRange(card.id);
-      status[card.id] = {
-        hasData: dateRange !== null,
-        dateRange,
-      };
+      status[card.id] = { dateRange: getCardTransactionDateRange(card.id) };
     }
     return status;
   }, [cards, transactionVersion]);

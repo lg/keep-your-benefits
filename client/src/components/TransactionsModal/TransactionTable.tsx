@@ -1,7 +1,7 @@
 import { memo, useMemo } from 'react';
 import type { StoredTransaction, BenefitDefinition } from '@shared/types';
 import type { CardType, ParsedTransaction } from '../../types/import';
-import { isBenefitCredit } from '@shared/utils';
+import { isBenefitCredit, formatDate } from '@shared/utils';
 import { matchCredits } from '../../services/benefitMatcher';
 import { Tooltip } from '../Tooltip';
 
@@ -17,15 +17,6 @@ interface DisplayTransaction {
   amount: number;
   matchedBenefit: string | null;
   isCredit: boolean;
-}
-
-function formatDate(date: Date): string {
-  return date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    timeZone: 'UTC',
-  });
 }
 
 function formatAmount(amount: number): string {

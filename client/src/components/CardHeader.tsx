@@ -1,11 +1,6 @@
 import { useState, useCallback, memo } from 'react';
-import type { CreditCard, Benefit, CardStats } from '@shared/types';
+import type { CreditCard, Benefit, CardStats, TransactionStatus } from '@shared/types';
 import { getAnnualFee, formatDateRange } from '@shared/utils';
-
-interface TransactionStatus {
-  hasData: boolean;
-  dateRange: { min: Date; max: Date } | null;
-}
 
 interface CardHeaderProps {
   card: CreditCard;
@@ -35,13 +30,13 @@ function CardHeaderComponent({ card, stats, allBenefits, selectedYear, onUpdateB
     <button
       onClick={onOpenTransactions}
       className={`px-2 py-0.5 text-xs font-medium rounded-full transition-colors cursor-pointer ${
-        transactionStatus?.hasData && transactionStatus.dateRange
+        transactionStatus?.dateRange
           ? 'border border-slate-500 text-slate-400 hover:border-slate-400 hover:text-slate-300'
           : 'bg-red-500 text-white hover:bg-red-600'
       }`}
       title="Manage transaction data"
     >
-      {transactionStatus?.hasData && transactionStatus.dateRange
+      {transactionStatus?.dateRange
         ? `Imported: ${formatDateRange(transactionStatus.dateRange.min, transactionStatus.dateRange.max)}`
         : 'No transaction data'}
     </button>

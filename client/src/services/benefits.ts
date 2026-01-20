@@ -172,16 +172,5 @@ export async function toggleEnrollment(
 
 export async function getStats(year?: number): Promise<Stats> {
   const benefits = await getBenefits(undefined, false, year);
-  const cardStats = calculateStats(benefits, year);
-
-  return {
-    totalBenefits: benefits.length,
-    totalValue: cardStats.totalValue,
-    usedValue: cardStats.usedValue,
-    currentPeriodCompletedCount: cardStats.currentPeriodCompletedCount,
-    ytdCompletedPeriods: cardStats.ytdCompletedPeriods,
-    ytdTotalPeriods: cardStats.ytdTotalPeriods,
-    pendingCount: cardStats.pendingCount,
-    missedCount: cardStats.missedCount,
-  };
+  return calculateStats(benefits, year);
 }

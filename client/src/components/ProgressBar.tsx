@@ -1,5 +1,6 @@
 import { memo, type ReactNode } from 'react';
 import type { ProgressSegment } from '@shared/types';
+import { formatDate } from '@shared/utils';
 import { Tooltip } from './Tooltip';
 
 interface ProgressBarProps {
@@ -13,11 +14,6 @@ const segmentClass = (segment: ProgressSegment) => {
   // pending status: yellow if current, gray if future
   if (segment.isCurrent) return 'progress-segment current';
   return 'progress-segment pending';
-};
-
-const formatTxDate = (dateString: string) => {
-  const date = new Date(dateString);
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
 };
 
 const buildTooltipContent = (segment: ProgressSegment): ReactNode => {
@@ -41,7 +37,7 @@ const buildTooltipContent = (segment: ProgressSegment): ReactNode => {
       <div className="border-t border-slate-600 my-1" />
       {transactions.map((tx, i) => (
         <div key={i} className="flex justify-between gap-4 text-[10px]">
-          <span className="text-slate-300">{formatTxDate(tx.date)} {tx.description}</span>
+          <span className="text-slate-300">{formatDate(tx.date, { includeYear: false })} {tx.description}</span>
           <span className="text-emerald-300">${tx.amount.toFixed(2)}</span>
         </div>
       ))}

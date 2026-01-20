@@ -6,7 +6,7 @@ import {
   type KeyboardEvent,
 } from 'react';
 import type { CreditCard, BenefitDefinition, StoredTransaction } from '@shared/types';
-import { getCardTransactions, clearCardTransactions } from '../../storage/userBenefits';
+import { getCardTransactions, clearCardTransactions, getCardTransactionDateRange } from '../../storage/userBenefits';
 import { formatDateRange } from '@shared/utils';
 import { CardTransactionsTab } from './CardTransactionsTab';
 
@@ -34,9 +34,7 @@ export function TransactionsModal({
   // Get transaction data for all cards
   // refreshKey forces recomputation when transactions are updated
   const cardData = useMemo(() => {
-    // Use refreshKey to trigger recomputation
-    void refreshKey;
-    
+    void refreshKey; // Used to trigger recomputation
     const data: Record<string, {
       transactions: StoredTransaction[];
       dateRange: { min: Date; max: Date } | null;
@@ -44,18 +42,10 @@ export function TransactionsModal({
 
     for (const card of cards) {
       const store = getCardTransactions(card.id);
-      if (store && store.transactions.length > 0) {
-        const dates = store.transactions.map(t => new Date(t.date));
-        data[card.id] = {
-          transactions: store.transactions,
-          dateRange: {
-            min: new Date(Math.min(...dates.map(d => d.getTime()))),
-            max: new Date(Math.max(...dates.map(d => d.getTime()))),
-          },
-        };
-      } else {
-        data[card.id] = { transactions: [], dateRange: null };
-      }
+      data[card.id] = {
+        transactions: store?.transactions ?? [],
+        dateRange: getCardTransactionDateRange(card.id),
+      };
     }
 
     return data;

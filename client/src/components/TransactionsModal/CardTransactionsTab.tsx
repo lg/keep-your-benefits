@@ -5,7 +5,6 @@ import {
   type ChangeEvent,
 } from 'react';
 import type { StoredTransaction, BenefitDefinition, CreditCard } from '@shared/types';
-import type { ParsedTransaction } from '../../types/import';
 import { parseStatement, extractCredits, AMEX_CONFIG, CHASE_CONFIG } from '../../services/statementParser';
 import { TransactionTable } from './TransactionTable';
 
@@ -39,28 +38,19 @@ export function CardTransactionsTab({
       try {
         const content = await file.text();
 
-        // Parse based on card type
-        let parsedTransactions: ParsedTransaction[] = [];
-        if (card.id.startsWith('amex')) {
-          parsedTransactions = parseStatement(content, AMEX_CONFIG);
-          const credits = extractCredits(parsedTransactions, AMEX_CONFIG);
-          if (credits.length === 0) {
-            setError(
-              'No statement credits found in the CSV. Make sure you exported the correct file.'
-            );
-            return;
-          }
-        } else if (card.id.startsWith('chase')) {
-          parsedTransactions = parseStatement(content, CHASE_CONFIG);
-          const credits = extractCredits(parsedTransactions, CHASE_CONFIG);
-          if (credits.length === 0) {
-            setError(
-              'No statement credits found in the CSV. Make sure you exported the correct file.'
-            );
-            return;
-          }
-        } else {
+        // Determine card type and config
+        const isChase = card.id.startsWith('chase');
+        const isAmex = card.id.startsWith('amex');
+        if (!isChase && !isAmex) {
           setError('This card is not yet supported for import');
+          return;
+        }
+
+        const config = isChase ? CHASE_CONFIG : AMEX_CONFIG;
+        const parsedTransactions = parseStatement(content, config);
+        const credits = extractCredits(parsedTransactions, config);
+        if (credits.length === 0) {
+          setError('No statement credits found in the CSV. Make sure you exported the correct file.');
           return;
         }
 
@@ -69,11 +59,9 @@ export function CardTransactionsTab({
         // For Chase, extendedDetails contains the Type field (Sale, Adjustment, etc.)
         const storedTransactions: StoredTransaction[] = parsedTransactions.map(tx => ({
           date: tx.date.toISOString(),
-          description: card.id.startsWith('amex') 
-            ? (tx.extendedDetails ?? tx.description)
-            : tx.description,
+          description: isAmex ? (tx.extendedDetails ?? tx.description) : tx.description,
           amount: tx.amount,
-          type: card.id.startsWith('chase') ? tx.extendedDetails : undefined,
+          type: isChase ? tx.extendedDetails : undefined,
         }));
 
         onTransactionsUpdate(storedTransactions);

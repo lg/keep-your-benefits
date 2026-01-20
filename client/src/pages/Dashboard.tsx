@@ -1,21 +1,16 @@
 import { useMemo } from 'react';
-import type { Benefit, Stats, CreditCard } from '@shared/types';
+import type { Benefit, Stats, CreditCard, TransactionStatus } from '@shared/types';
 import { BenefitCard } from '../components/BenefitCard';
 import { CardHeader } from '../components/CardHeader';
 import { useBenefits } from '../context/BenefitsContext';
 import { calculateStats, getTotalAnnualFee } from '@shared/utils';
-
-interface CardTransactionStatus {
-  hasData: boolean;
-  dateRange: { min: Date; max: Date } | null;
-}
 
 interface DashboardProps {
   benefits: Benefit[];
   cards: CreditCard[];
   allBenefits: Benefit[];
   stats: Stats | null;
-  cardTransactionStatus: Record<string, CardTransactionStatus>;
+  cardTransactionStatus: Record<string, TransactionStatus>;
   onOpenTransactions: () => void;
 }
 
