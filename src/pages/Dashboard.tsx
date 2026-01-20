@@ -1,9 +1,9 @@
 import { useMemo } from 'react';
-import type { Benefit, Stats, CreditCard, TransactionStatus } from '@shared/types';
+import type { Benefit, Stats, CreditCard, TransactionStatus } from '@lib/types';
 import { BenefitCard } from '../components/BenefitCard';
 import { CardHeader } from '../components/CardHeader';
 import { useBenefits } from '../context/BenefitsContext';
-import { calculateStats, getTotalAnnualFee } from '@shared/utils';
+import { calculateStats, getTotalAnnualFee } from '@lib/utils';
 
 interface DashboardProps {
   benefits: Benefit[];

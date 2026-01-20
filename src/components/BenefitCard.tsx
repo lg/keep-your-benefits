@@ -1,9 +1,9 @@
 import { useMemo, memo } from 'react';
-import type { Benefit } from '@shared/types';
+import type { Benefit } from '@lib/types';
 import { ProgressBar } from './ProgressBar';
 import { Tooltip } from './Tooltip';
 import { useBenefits } from '../context/BenefitsContext';
-import { buildProgressSegments, formatDate } from '@shared/utils';
+import { buildProgressSegments, formatDate } from '@lib/utils';
 
 const STATUS_COLORS = {
   pending: 'bg-amber-400 text-slate-900',

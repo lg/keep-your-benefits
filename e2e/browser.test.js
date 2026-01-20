@@ -405,13 +405,25 @@ test.describe('4-Year Benefits (Global Entry)', () => {
     await page.reload();
 
     const globalEntryCard = page.locator('.benefit-card', { hasText: 'Global Entry' }).first();
-    // Hover over the progress segment to show tooltip
-    await globalEntryCard.locator('.progress-segment').hover();
+    const progressSegment = globalEntryCard.locator('.progress-segment');
+    
+    // Hover to trigger mouseenter, then move slightly to ensure position is set
+    await progressSegment.hover();
+    const box = await progressSegment.boundingBox();
+    await page.mouse.move(box.x + box.width / 2 + 1, box.y + box.height / 2);
+    
+    // Wait for tooltip to appear (rendered via portal with these specific classes)
+    // Poll every 50ms, give up after 2s
+    const tooltip = page.locator('body > div.fixed.z-50.bg-slate-800');
+    await expect(async () => {
+      await expect(tooltip).toBeVisible();
+    }).toPass({ timeout: 2000, intervals: [50] });
+    
     // The tooltip should show the validity period (4 years) and transaction with year
     // The date range header shows "Mar 15, 2024 - Mar 14, 2028"
-    await expect(page.getByText('Mar 15, 2024 - Mar 14, 2028')).toBeVisible();
+    await expect(tooltip.getByText('Mar 15, 2024 - Mar 14, 2028')).toBeVisible();
     // The transaction line shows "Mar 15, 2024 Platinum Global Entry Credit"
-    await expect(page.getByText('Mar 15, 2024 Platinum Global Entry Credit')).toBeVisible();
+    await expect(tooltip.getByText('Mar 15, 2024 Platinum Global Entry Credit')).toBeVisible();
   });
 
   test('shows completed for years within validity period when viewing past year', async ({ page }) => {
@@ -438,5 +450,44 @@ test.describe('4-Year Benefits (Global Entry)', () => {
 
     const globalEntryCard = page.locator('.benefit-card', { hasText: 'Global Entry' }).first();
     await expect(globalEntryCard.locator('.progress-segment.completed')).toHaveCount(1);
+  });
+});
+
+test.describe('README Page', () => {
+  test('readme.html loads and renders correctly', async ({ page }) => {
+    await page.goto('/readme.html');
+    
+    // Check title rendered
+    await expect(page.locator('h1')).toContainText('Use Your Benefits');
+    
+    // Check key sections are present
+    await expect(page.getByText('Features')).toBeVisible();
+    await expect(page.getByText('Importing Transactions')).toBeVisible();
+    await expect(page.getByText('Tech Stack')).toBeVisible();
+  });
+
+  test('readme.html images load successfully', async ({ page }) => {
+    await page.goto('/readme.html');
+    
+    // Check favicon in title loads (naturalWidth > 0 means loaded)
+    const favicon = page.locator('img[alt="icon"]');
+    await expect(favicon).toBeVisible();
+    const faviconWidth = await favicon.evaluate(img => img.naturalWidth);
+    expect(faviconWidth).toBeGreaterThan(0);
+    
+    // Check screenshot loads
+    const screenshot = page.locator('img[alt="Screenshot"]');
+    await expect(screenshot).toBeVisible();
+    const screenshotWidth = await screenshot.evaluate(img => img.naturalWidth);
+    expect(screenshotWidth).toBeGreaterThan(0);
+  });
+
+  test('readme.html has GitHub-styled container', async ({ page }) => {
+    await page.goto('/readme.html');
+    
+    // Check the GitHub-style wrapper elements exist
+    await expect(page.locator('.readme-box')).toBeVisible();
+    await expect(page.locator('.readme-header')).toContainText('README.md');
+    await expect(page.locator('.markdown-body')).toBeVisible();
   });
 });

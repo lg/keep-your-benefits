@@ -1,6 +1,6 @@
 import { useState, useCallback, memo } from 'react';
-import type { CreditCard, Benefit, Stats, TransactionStatus } from '@shared/types';
-import { getAnnualFee, formatDateRange } from '@shared/utils';
+import type { CreditCard, Benefit, Stats, TransactionStatus } from '@lib/types';
+import { getAnnualFee, formatDateRange } from '@lib/utils';
 
 interface CardHeaderProps {
   card: CreditCard;

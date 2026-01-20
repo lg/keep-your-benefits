@@ -1,7 +1,7 @@
 import { memo, useMemo } from 'react';
-import type { StoredTransaction, BenefitDefinition } from '@shared/types';
+import type { StoredTransaction, BenefitDefinition } from '@lib/types';
 import type { CardType, ParsedTransaction } from '../../types/import';
-import { isBenefitCredit, formatDate } from '@shared/utils';
+import { isBenefitCredit, formatDate } from '@lib/utils';
 import { matchCredits } from '../../services/benefitMatcher';
 import { Tooltip } from '../Tooltip';
 

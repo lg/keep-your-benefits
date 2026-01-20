@@ -5,7 +5,7 @@ import type {
   CardTransactionStore,
   StoredTransaction,
   UserBenefitsData,
-} from '@shared/types';
+} from '@lib/types';
 
 const STORAGE_KEY = 'use-your-benefits';
 

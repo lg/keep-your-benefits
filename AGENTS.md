@@ -6,7 +6,7 @@ This document provides instructions for AI agents working on the Use Your Benefi
 
 1. **Use Bun exclusively** - All commands must use `bun` (not `npm`, `yarn`, or `pnpm`)
 2. **TypeScript everywhere** - All code must be written in TypeScript
-3. **Static JSON for definitions** - Benefit definitions stored in `client/public/benefits.json`
+3. **Static JSON for definitions** - Benefit definitions stored in `public/benefits.json`
 4. **localStorage for user data** - User state (usage, enrollment, ignored) stored in browser localStorage
 5. **UTC timezone** - All date handling assumes UTC
 6. **Calendar year resets** - All benefits reset on a calendar year basis
@@ -82,22 +82,21 @@ bun run test:e2e:install
 
 ```
 use-your-benefits/
-├── client/                  # Frontend (React + Vite)
-│   ├── public/
-│   │   └── benefits.json    # Static benefit definitions
-│   └── src/
-│       ├── api/             # Data fetching (loads benefits.json)
-│       ├── components/      # React components
-│       ├── hooks/           # Custom React hooks
-│       ├── pages/           # Page components
-│       ├── services/        # Business logic (merges data with localStorage)
-│       ├── storage/         # localStorage CRUD operations
-│       ├── types/           # TypeScript types
-│       └── utils/           # Helper functions
-├── shared/                  # Shared types and utilities
-│   ├── types.ts
-│   └── utils.ts
+├── src/                     # Frontend source code
+│   ├── api/                 # Data fetching (loads benefits.json)
+│   ├── components/          # React components
+│   ├── context/             # React context providers
+│   ├── lib/                 # Shared types and utilities
+│   │   ├── types.ts
+│   │   └── utils.ts
+│   ├── pages/               # Page components
+│   ├── services/            # Business logic (merges data with localStorage)
+│   ├── storage/             # localStorage CRUD operations
+│   └── types/               # TypeScript types
+├── public/                  # Static assets
+│   └── benefits.json        # Static benefit definitions
 ├── e2e/                     # Playwright E2E tests
+├── index.html               # Vite entry point
 └── dist/                    # Production build output
 ```
 
@@ -111,7 +110,7 @@ use-your-benefits/
 ### Tailwind CSS
 
 - Use utility classes for styling
-- Custom styles go in `client/src/index.css`
+- Custom styles go in `src/index.css`
 - Color palette: `slate-*` for backgrounds, `emerald` for success, `amber` for pending, `red` for missed
 
 ## Data Model Guidelines
@@ -158,21 +157,21 @@ User data is stored under the key `user-benefits`:
 
 ### Adding a New Credit Card
 
-1. Add card to `client/public/benefits.json` `cards` array
+1. Add card to `public/benefits.json` `cards` array
 2. Add benefits in `benefits` array with `cardId` referencing the new card
 
 ### Adding a New Benefit
 
-1. Add to `client/public/benefits.json` `benefits` array
+1. Add to `public/benefits.json` `benefits` array
 2. Define all required fields (id, cardId, name, amounts, dates, etc.)
 3. If benefit requires enrollment, set `enrollmentRequired: true`
 4. If benefit has multiple periods, add `periods` array
 
 ### Modifying Data Model
 
-1. Update types in `shared/types.ts`
-2. Update client types in `client/src/types/index.ts` if needed
-3. Update seed data in `client/public/benefits.json` if needed
+1. Update types in `src/lib/types.ts`
+2. Update client types in `src/types/` if needed
+3. Update seed data in `public/benefits.json` if needed
 4. Update storage/service logic as needed
 
 ## Testing Guidelines
@@ -225,7 +224,7 @@ No backend or server-side runtime required.
 
 ## Taking Screenshots
 
-The screenshot lives at `client/public/screenshot.png` (served by Vite).
+The screenshot lives at `public/screenshot.png` (served by Vite).
 
 To update the README screenshot:
 
@@ -248,7 +247,7 @@ To update the README screenshot:
    ```bash
    height=$(sips -g pixelHeight /tmp/screenshot_full.png | grep pixelHeight | awk '{print $2}')
    third=$((height / 3))
-   magick /tmp/screenshot_full.png -crop 1280x${third}+0+0 client/public/screenshot.png
+   magick /tmp/screenshot_full.png -crop 1280x${third}+0+0 public/screenshot.png
    ```
    
    The `+0+0` offset ensures cropping from the top-left corner.
@@ -274,8 +273,8 @@ A custom Vite plugin in `vite.config.ts` automatically generates `readme.html` f
 - **Dev mode**: Serves `/readme.html` via middleware with hot-reload on README changes
 - **Build mode**: Emits `readme.html` to `dist/`
 - **Transformations applied**:
-  - Image paths: `client/public/favicon.svg` → `favicon.svg`
-  - Image paths: `client/public/screenshot.png` → `screenshot.png`
+  - Image paths: `public/favicon.svg` → `favicon.svg`
+  - Image paths: `public/screenshot.png` → `screenshot.png`
   - Centers the h1 title
   - Centers the shields.io badge
   - Wraps in GitHub-styled HTML template
@@ -289,8 +288,8 @@ A custom Vite plugin in `vite.config.ts` automatically generates `readme.html` f
 ### Image Paths
 
 In `README.md`, reference images with their actual paths:
-- `![Screenshot](client/public/screenshot.png)`
-- `<img src="client/public/favicon.svg" ...>`
+- `![Screenshot](public/screenshot.png)`
+- `<img src="public/favicon.svg" ...>`
 
 The Vite plugin transforms these to relative paths for the generated HTML.
 

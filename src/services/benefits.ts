@@ -4,12 +4,12 @@ import type {
   BenefitUserState,
   Stats,
   StoredTransaction,
-} from '../../../shared/types';
+} from '@lib/types';
 import {
   buildBenefitUsageSnapshot,
   calculateStats,
   isBenefitCredit,
-} from '../../../shared/utils';
+} from '@lib/utils';
 import { api } from '../api/client';
 import {
   getDefaultUserState,

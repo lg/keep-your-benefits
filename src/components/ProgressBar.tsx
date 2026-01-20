@@ -1,6 +1,6 @@
 import { memo, type ReactNode } from 'react';
-import type { ProgressSegment } from '@shared/types';
-import { formatDate } from '@shared/utils';
+import type { ProgressSegment } from '@lib/types';
+import { formatDate } from '@lib/utils';
 import { Tooltip } from './Tooltip';
 
 interface ProgressBarProps {

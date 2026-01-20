@@ -4,7 +4,7 @@ import {
   type DragEvent,
   type ChangeEvent,
 } from 'react';
-import type { StoredTransaction, BenefitDefinition, CreditCard } from '@shared/types';
+import type { StoredTransaction, BenefitDefinition, CreditCard } from '@lib/types';
 import { parseStatement, extractCredits, AMEX_CONFIG, CHASE_CONFIG } from '../../services/statementParser';
 import { TransactionTable } from './TransactionTable';
 

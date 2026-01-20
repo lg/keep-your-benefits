@@ -1,4 +1,4 @@
-import type { BenefitDefinition, BenefitsStaticData, CreditCard } from '../../../shared/types';
+import type { BenefitDefinition, BenefitsStaticData, CreditCard } from '@lib/types';
 
 // Cache the promise to avoid fetching benefits.json multiple times
 let cachedPromise: Promise<BenefitsStaticData> | null = null;

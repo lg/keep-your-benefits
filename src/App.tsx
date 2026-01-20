@@ -1,12 +1,12 @@
 import { useState, useCallback, useEffect, useMemo, lazy, Suspense } from 'react';
-import type { CreditCard, Benefit, BenefitDefinition, Stats } from '@shared/types';
+import type { CreditCard, Benefit, BenefitDefinition, Stats } from '@lib/types';
 import { Dashboard } from './pages/Dashboard';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { BenefitsProvider } from './context/BenefitsContext';
 import * as benefitsService from './services/benefits';
 import { api } from './api/client';
 import { saveCardTransactions, getCardTransactionDateRange } from './storage/userBenefits';
-import type { StoredTransaction } from '@shared/types';
+import type { StoredTransaction } from '@lib/types';
 
 const TransactionsModal = lazy(() => import('./components/TransactionsModal/TransactionsModal').then(m => ({ default: m.TransactionsModal })));
 

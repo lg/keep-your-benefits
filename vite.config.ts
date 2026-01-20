@@ -15,8 +15,8 @@ function readmePlugin(): Plugin {
 
     // Transform image paths for the HTML output
     let content = readme
-      .replace(/client\/public\/favicon\.svg/g, 'favicon.svg')
-      .replace(/client\/public\/screenshot\.png/g, 'screenshot.png')
+      .replace(/public\/favicon\.svg/g, 'favicon.svg')
+      .replace(/public\/screenshot\.png/g, 'screenshot.png')
 
     // Parse markdown to HTML
     let html = marked.parse(content) as string
@@ -149,12 +149,11 @@ function readmePlugin(): Plugin {
 }
 
 export default defineConfig(({ command }) => ({
-  root: './client',
   base: command === 'build' ? '/use-your-benefits/' : '/',
   plugins: [react(), readmePlugin()],
   clearScreen: false,
   build: {
-    outDir: '../dist',
+    outDir: 'dist',
     emptyOutDir: true
   },
   server: {
@@ -162,8 +161,8 @@ export default defineConfig(({ command }) => ({
   },
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './client/src'),
-      '@shared': path.resolve(__dirname, './shared')
+      '@': path.resolve(__dirname, './src'),
+      '@lib': path.resolve(__dirname, './src/lib')
     }
   }
 }))

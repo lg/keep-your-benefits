@@ -12,7 +12,7 @@
   },
   "overrides": [
     {
-      "files": ["client/**/*.{ts,tsx}"],
+      "files": ["src/**/*.{ts,tsx}"],
       "rules": {
         "typescript/consistent-type-imports": "error"
       }

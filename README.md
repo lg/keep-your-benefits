@@ -1,6 +1,6 @@
-# <img src="client/public/favicon.svg" width="32" height="32" alt="icon"> Use Your Benefits
+# <img src="public/favicon.svg" width="32" height="32" alt="icon"> Use Your Benefits
 
-![Screenshot](client/public/screenshot.png)
+![Screenshot](public/screenshot.png)
 
 A fully static web application to track credit card benefits for Amex Platinum and Chase Sapphire Reserve. Import your CSV statements from Amex and Chase to automatically track benefit usage. All data is stored locally in your browser and never sent to any servers.
 
@@ -145,7 +145,7 @@ This is a fully static app - no server required. To deploy:
 
 ## Data Storage
 
-- **Benefit definitions**: Stored in `client/public/benefits.json` (static, version-controlled)
+- **Benefit definitions**: Stored in `public/benefits.json` (static, version-controlled)
 - **User data**: Stored in browser `localStorage` under key `user-benefits`
   - Usage amounts
   - Enrollment status

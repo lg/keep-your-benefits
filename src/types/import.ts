@@ -1,6 +1,6 @@
 // Types for CSV import functionality
 
-import type { StoredTransaction } from '../../../shared/types';
+import type { StoredTransaction } from '@lib/types';
 
 export interface ParsedTransaction {
   date: Date;

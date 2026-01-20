@@ -5,9 +5,9 @@ import {
   type MouseEvent,
   type KeyboardEvent,
 } from 'react';
-import type { CreditCard, BenefitDefinition, StoredTransaction } from '@shared/types';
+import type { CreditCard, BenefitDefinition, StoredTransaction } from '@lib/types';
 import { getCardTransactions, clearCardTransactions, getCardTransactionDateRange } from '../../storage/userBenefits';
-import { formatDateRange } from '@shared/utils';
+import { formatDateRange } from '@lib/utils';
 import { CardTransactionsTab } from './CardTransactionsTab';
 
 type ConfirmState = 'none' | 'confirming';
