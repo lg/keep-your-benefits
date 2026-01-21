@@ -1,12 +1,12 @@
 import { useState, useCallback, useEffect, useMemo, lazy, Suspense } from 'react';
-import type { CreditCard, Benefit, BenefitDefinition, Stats } from '@lib/types';
+import type { CreditCard, Benefit, BenefitDefinition, Stats, StoredTransaction } from '@lib/types';
+import { calculateStats } from '@lib/utils';
 import { Dashboard } from './pages/Dashboard';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { BenefitsProvider } from './context/BenefitsContext';
 import * as benefitsService from './services/benefits';
 import { api } from './api/client';
 import { saveCardTransactions, getCardTransactionDateRange } from './storage/userBenefits';
-import type { StoredTransaction } from '@lib/types';
 
 const TransactionsModal = lazy(() => import('./components/TransactionsModal/TransactionsModal').then(m => ({ default: m.TransactionsModal })));
 
@@ -22,7 +22,21 @@ function App() {
   const [transactionsModalOpen, setTransactionsModalOpen] = useState(false);
   const [transactionVersion, setTransactionVersion] = useState(0);
 
-  const loadData = useCallback(async (signal?: AbortSignal, year?: number) => {
+  const refreshBenefits = useCallback(async (year: number, signal?: AbortSignal) => {
+    const allBenefitsData = await benefitsService.getBenefits(undefined, true, year);
+    if (signal?.aborted) return;
+
+    const benefitsData = allBenefitsData.filter((benefit) => !benefit.ignored);
+    const statsData = calculateStats(benefitsData, year);
+
+    if (signal?.aborted) return;
+
+    setAllBenefits(allBenefitsData);
+    setBenefits(benefitsData);
+    setStats(statsData);
+  }, []);
+
+  const loadData = useCallback(async (signal: AbortSignal | undefined, year: number) => {
     try {
       // Fetch cards and definitions from static JSON
       const [cardsData, definitionsData] = await Promise.all([
@@ -33,26 +47,16 @@ function App() {
       // Check if aborted before continuing
       if (signal?.aborted) return;
       
-      // Fetch all benefits once, then filter for non-ignored
-      const allBenefitsData = await benefitsService.getBenefits(undefined, true, year);
-      const benefitsData = allBenefitsData.filter(b => !b.ignored);
-      const statsData = await benefitsService.getStats(year);
-      
-      // Only update state if still mounted
-      if (signal?.aborted) return;
-      
       setCards(cardsData);
       setDefinitions(definitionsData);
-      setBenefits(benefitsData);
-      setAllBenefits(allBenefitsData);
-      setStats(statsData);
+      await refreshBenefits(year, signal);
     } catch (err) {
       if (signal?.aborted) return;
       setError((err as Error).message);
     } finally {
       // Data loaded
     }
-  }, []);
+  }, [refreshBenefits]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -69,12 +73,10 @@ function App() {
       return;
     }
 
-    const updated = await benefitsService.toggleEnrollment(id, definition, selectedYear);
-
-    setAllBenefits(prev => prev.map(b => b.id === id ? updated : b));
-    setBenefits(prev => prev.map(b => b.id === id ? updated : b));
+    await benefitsService.toggleEnrollment(id, definition, selectedYear);
+    await refreshBenefits(selectedYear);
     setUpdateError(null);
-  }, [definitions, selectedYear]);
+  }, [definitions, selectedYear, refreshBenefits]);
 
   const handleToggleVisibility = useCallback(async (id: string) => {
     const definition = definitions.find(d => d.id === id);
@@ -86,31 +88,10 @@ function App() {
     const currentBenefit = allBenefits.find(b => b.id === id);
     const newIgnored = !currentBenefit?.ignored;
 
-    const updated = await benefitsService.updateBenefit(id, definition, newIgnored, selectedYear);
-
-    setAllBenefits(prev => prev.map(b => b.id === id ? updated : b));
-    if (newIgnored) {
-      setBenefits(prev => prev.filter(b => b.id !== id));
-    } else {
-      setBenefits(prev => {
-        const exists = prev.find(b => b.id === id);
-        if (exists) {
-          return prev.map(b => b.id === id ? updated : b);
-        }
-        // Add and sort by definition order to maintain original position
-        const newBenefits = [...prev, updated];
-        return newBenefits.sort((a, b) => {
-          const indexA = definitions.findIndex(d => d.id === a.id);
-          const indexB = definitions.findIndex(d => d.id === b.id);
-          return indexA - indexB;
-        });
-      });
-    }
-
-    const statsData = await benefitsService.getStats(selectedYear);
-    setStats(statsData);
+    await benefitsService.updateBenefit(id, definition, newIgnored, selectedYear);
+    await refreshBenefits(selectedYear);
     setUpdateError(null);
-  }, [definitions, allBenefits, selectedYear]);
+  }, [definitions, allBenefits, selectedYear, refreshBenefits]);
 
   const handleTransactionsUpdate = useCallback(async (
     cardId: string,
@@ -122,17 +103,9 @@ function App() {
     // Bump version to trigger cardTransactionStatus recomputation
     setTransactionVersion(v => v + 1);
     
-    // Refresh benefits from storage (transactions are now derived via matcher)
-    // Auto-enrollment is derived in mergeBenefit based on detected credits
-    const allBenefitsData = await benefitsService.getBenefits(undefined, true, selectedYear);
-    const benefitsData = allBenefitsData.filter(b => !b.ignored);
-    const statsData = await benefitsService.getStats(selectedYear);
-    
-    setAllBenefits(allBenefitsData);
-    setBenefits(benefitsData);
-    setStats(statsData);
+    await refreshBenefits(selectedYear);
     setUpdateError(null);
-  }, [selectedYear]);
+  }, [selectedYear, refreshBenefits]);
 
   // Build card transaction status for UI
   // transactionVersion triggers recomputation when transactions change

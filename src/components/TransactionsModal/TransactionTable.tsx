@@ -1,8 +1,7 @@
 import { memo, useMemo } from 'react';
 import type { StoredTransaction, BenefitDefinition } from '@lib/types';
-import type { CardType, ParsedTransaction } from '../../types/import';
 import { isBenefitCredit, formatDate } from '@lib/utils';
-import { matchCredits } from '../../services/benefitMatcher';
+import { buildCreditBenefitMap, getMatchedCredits } from '../../services/benefitMatcher';
 import { Tooltip } from '../Tooltip';
 
 interface TransactionTableProps {
@@ -35,25 +34,8 @@ function TransactionTableComponent({
   definitions,
 }: TransactionTableProps) {
   const displayTransactions = useMemo((): DisplayTransaction[] => {
-    // Filter for benefit credits based on card type
-    const credits: ParsedTransaction[] = transactions
-      .filter(tx => isBenefitCredit(tx.amount, tx.description, cardId, tx.type))
-      .map(tx => ({
-        date: new Date(tx.date),
-        description: tx.description,
-        amount: tx.amount,
-      }));
-
-    // Run matcher to identify benefits
-    const cardDefinitions = definitions.filter(d => d.cardId === cardId);
-    const matchResult = matchCredits(credits, cardId as CardType, cardDefinitions);
-
-    // Build a map of credit key -> benefit name
-    const creditBenefitMap = new Map<string, string>();
-    for (const matched of matchResult.matchedCredits) {
-      const key = `${matched.transaction.date.getTime()}-${matched.transaction.description}-${matched.transaction.amount}`;
-      creditBenefitMap.set(key, matched.benefitName ?? 'Unknown');
-    }
+    const matchedCredits = getMatchedCredits(transactions, cardId, definitions);
+    const creditBenefitMap = buildCreditBenefitMap(matchedCredits);
 
     // Convert all transactions to display format
     return transactions

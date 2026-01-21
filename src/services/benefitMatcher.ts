@@ -1,6 +1,7 @@
 // Benefit matching logic - maps credit transactions to benefit definitions
 
-import type { BenefitDefinition } from '@lib/types';
+import type { BenefitDefinition, StoredTransaction } from '@lib/types';
+import { isBenefitCredit } from '@lib/utils';
 import type {
   ParsedTransaction,
   MatchedCredit,
@@ -108,7 +109,7 @@ export function matchCredits(
       continue;
     }
 
-const benefit = benefitMap.get(match.benefitId);
+    const benefit = benefitMap.get(match.benefitId);
 
     matchedCredits.push({
       transaction: credit,
@@ -126,4 +127,55 @@ const benefit = benefitMap.get(match.benefitId);
     totalMatched: matchedCredits.length,
     totalUnmatched: unmatchedCredits.length,
   };
+}
+
+export function getMatchedCredits(
+  transactions: StoredTransaction[],
+  cardId: string,
+  definitions: BenefitDefinition[]
+): MatchedCredit[] {
+  const credits: ParsedTransaction[] = transactions
+    .filter((tx) => isBenefitCredit(tx.amount, tx.description, cardId, tx.type))
+    .map((tx) => ({
+      date: new Date(tx.date),
+      description: tx.description,
+      amount: tx.amount,
+    }));
+
+  if (credits.length === 0) {
+    return [];
+  }
+
+  const cardDefinitions = definitions.filter((definition) => definition.cardId === cardId);
+  return matchCredits(credits, cardId as CardType, cardDefinitions).matchedCredits;
+}
+
+export function groupMatchedCreditsByBenefit(
+  matchedCredits: MatchedCredit[]
+): Record<string, StoredTransaction[]> {
+  const grouped: Record<string, StoredTransaction[]> = {};
+
+  for (const match of matchedCredits) {
+    if (!match.benefitId) continue;
+    (grouped[match.benefitId] ??= []).push({
+      date: match.transaction.date.toISOString(),
+      description: match.transaction.description,
+      amount: match.creditAmount,
+    });
+  }
+
+  return grouped;
+}
+
+export function buildCreditBenefitMap(
+  matchedCredits: MatchedCredit[]
+): Map<string, string> {
+  const creditBenefitMap = new Map<string, string>();
+
+  for (const match of matchedCredits) {
+    const key = `${match.transaction.date.getTime()}-${match.transaction.description}-${match.transaction.amount}`;
+    creditBenefitMap.set(key, match.benefitName ?? 'Unknown');
+  }
+
+  return creditBenefitMap;
 }

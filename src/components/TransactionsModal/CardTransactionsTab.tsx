@@ -8,6 +8,19 @@ import type { StoredTransaction, BenefitDefinition, CreditCard } from '@lib/type
 import { parseStatement, extractCredits, AMEX_CONFIG, CHASE_CONFIG } from '../../services/statementParser';
 import { TransactionTable } from './TransactionTable';
 
+const externalLinkIcon = (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    className="inline-block ml-0.5 h-3 w-3"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+    strokeWidth="2"
+  >
+    <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+  </svg>
+);
+
 interface CardTransactionsTabProps {
   card: CreditCard;
   transactions: StoredTransaction[];
@@ -24,6 +37,51 @@ export function CardTransactionsTab({
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const isChase = card.id.startsWith('chase');
+  const isAmex = card.id.startsWith('amex');
+  const cardLabel = isChase ? 'Chase' : 'Amex';
+  const amexEndDate = new Date().toISOString().split('T')[0];
+  const instructions = isChase
+    ? {
+        title: 'How to export from Chase:',
+        steps: [
+          <>
+            Go to your account activity:{' '}
+            <a
+              href="https://secure.chase.com/web/auth/dashboard#/dashboard/accountActivity"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-400 hover:text-blue-300 underline"
+            >
+              chase.com/accountActivity
+              {externalLinkIcon}
+            </a>
+          </>,
+          'Select your Sapphire Reserve card and set date range',
+          'Click the download icon and select CSV',
+          'Drag/upload the CSV above.',
+        ],
+      }
+    : {
+        title: 'How to export from Amex:',
+        steps: [
+          <>
+            Go to transaction activity as far back as possible:{' '}
+            <a
+              href={`https://global.americanexpress.com/activity?endDate=${amexEndDate}&startDate=2024-01-01`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-400 hover:text-blue-300 underline"
+            >
+              global.americanexpress.com/activity
+              {externalLinkIcon}
+            </a>
+          </>,
+          'Click Download → CSV (Include all additional transaction details) → Download',
+          'Drag/upload the CSV above.',
+        ],
+      };
+
   const hasTransactions = transactions.length > 0;
 
   const processFile = useCallback(
@@ -39,8 +97,6 @@ export function CardTransactionsTab({
         const content = await file.text();
 
         // Determine card type and config
-        const isChase = card.id.startsWith('chase');
-        const isAmex = card.id.startsWith('amex');
         if (!isChase && !isAmex) {
           setError('This card is not yet supported for import');
           return;
@@ -69,7 +125,7 @@ export function CardTransactionsTab({
         setError(`Failed to parse CSV: ${(err as Error).message}`);
       }
     },
-    [card.id, onTransactionsUpdate]
+    [isChase, isAmex, onTransactionsUpdate]
   );
 
   const handleDragOver = useCallback((e: DragEvent<HTMLDivElement>) => {
@@ -114,8 +170,7 @@ export function CardTransactionsTab({
     return (
       <div className="py-4">
         <p className="text-sm text-slate-400 mb-4">
-          Upload your {card.id.startsWith('chase') ? 'Chase' : 'Amex'} statement CSV to automatically import your
-          benefit credits.
+          Upload your {cardLabel} statement CSV to automatically import your benefit credits.
         </p>
 
         <div
@@ -165,66 +220,14 @@ export function CardTransactionsTab({
           <p className="mt-4 text-sm text-red-400">{error}</p>
         )}
 
-        {card.id.startsWith('chase') ? (
-          <div className="mt-6 text-xs text-slate-500">
-            <p className="font-medium mb-1">How to export from Chase:</p>
-            <ol className="list-decimal list-inside space-y-1">
-              <li>
-                Go to your account activity:{' '}
-                <a
-                  href="https://secure.chase.com/web/auth/dashboard#/dashboard/accountActivity"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-400 hover:text-blue-300 underline"
-                >
-                  chase.com/accountActivity
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="inline-block ml-0.5 h-3 w-3"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                  </svg>
-                </a>
-              </li>
-              <li>Select your Sapphire Reserve card and set date range</li>
-              <li>Click the download icon and select CSV</li>
-              <li>Drag/upload the CSV above.</li>
-            </ol>
-          </div>
-        ) : (
-          <div className="mt-6 text-xs text-slate-500">
-            <p className="font-medium mb-1">How to export from Amex:</p>
-            <ol className="list-decimal list-inside space-y-1">
-              <li>
-                Go to transaction activity as far back as possible:{' '}
-                <a
-                  href={`https://global.americanexpress.com/activity?endDate=${new Date().toISOString().split('T')[0]}&startDate=2024-01-01`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-400 hover:text-blue-300 underline"
-                >
-                  global.americanexpress.com/activity
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="inline-block ml-0.5 h-3 w-3"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                  </svg>
-                </a>
-              </li>
-              <li>Click Download → CSV (Include all additional transaction details) → Download</li>
-              <li>Drag/upload the CSV above.</li>
-            </ol>
-          </div>
-        )}
+        <div className="mt-6 text-xs text-slate-500">
+          <p className="font-medium mb-1">{instructions.title}</p>
+          <ol className="list-decimal list-inside space-y-1">
+            {instructions.steps.map((step, index) => (
+              <li key={index}>{step}</li>
+            ))}
+          </ol>
+        </div>
 
         <p className="mt-4 text-center text-sm text-white">
           Everything is done client-side and never uploaded anywhere!

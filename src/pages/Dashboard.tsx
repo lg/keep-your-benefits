@@ -33,36 +33,42 @@ export function Dashboard({
     [cards, benefits, allBenefits]
   );
 
+  const summaryCards = stats
+    ? [
+        { label: 'Total Value', value: `$${stats.totalValue}` },
+        {
+          label: `Used ($${getTotalAnnualFee(cards, selectedYear)} fee)`,
+          value: `$${stats.usedValue.toFixed(0)}`,
+          valueClass: 'text-emerald-400',
+        },
+        {
+          label: 'Remaining',
+          value: `$${(stats.totalValue - stats.usedValue).toFixed(0)}`,
+          valueClass: 'text-amber-400',
+        },
+        {
+          label: 'Current Period',
+          value: `${stats.currentPeriodCompletedCount}/${stats.totalBenefits}`,
+          valueClass: 'text-emerald-400',
+        },
+        {
+          label: 'Year-to-date',
+          value: `${stats.ytdCompletedPeriods}/${stats.ytdTotalPeriods}`,
+          valueClass: 'text-emerald-400',
+        },
+      ]
+    : [];
+
   return (
     <div>
       {stats && (
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-          <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
-            <p className="text-slate-400 text-sm">Total Value</p>
-            <p className="text-2xl font-bold">${stats.totalValue}</p>
-          </div>
-          <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
-            <p className="text-slate-400 text-sm">Used (${getTotalAnnualFee(cards, selectedYear)} fee)</p>
-            <p className="text-2xl font-bold text-emerald-400">${stats.usedValue.toFixed(0)}</p>
-          </div>
-          <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
-            <p className="text-slate-400 text-sm">Remaining</p>
-            <p className="text-2xl font-bold text-amber-400">
-              ${(stats.totalValue - stats.usedValue).toFixed(0)}
-            </p>
-          </div>
-          <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
-            <p className="text-slate-400 text-sm">Current Period</p>
-            <p className="text-2xl font-bold text-emerald-400">
-              {stats.currentPeriodCompletedCount}/{stats.totalBenefits}
-            </p>
-          </div>
-          <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
-            <p className="text-slate-400 text-sm">Year-to-date</p>
-            <p className="text-2xl font-bold text-emerald-400">
-              {stats.ytdCompletedPeriods}/{stats.ytdTotalPeriods}
-            </p>
-          </div>
+          {summaryCards.map(({ label, value, valueClass }) => (
+            <div key={label} className="bg-slate-800 rounded-lg p-4 border border-slate-700">
+              <p className="text-slate-400 text-sm">{label}</p>
+              <p className={`text-2xl font-bold ${valueClass ?? ''}`}>{value}</p>
+            </div>
+          ))}
         </div>
       )}
 

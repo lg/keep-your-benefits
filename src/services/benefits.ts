@@ -8,7 +8,6 @@ import type {
 import {
   buildBenefitUsageSnapshot,
   calculateStats,
-  isBenefitCredit,
 } from '@lib/utils';
 import { api } from '../api/client';
 import {
@@ -17,8 +16,7 @@ import {
   getCardTransactions,
   updateUserState,
 } from '../storage/userBenefits';
-import { matchCredits } from './benefitMatcher';
-import type { CardType, ParsedTransaction } from '../types/import';
+import { getMatchedCredits, groupMatchedCreditsByBenefit } from './benefitMatcher';
 
 // In-memory cache for matched transactions per card
 // Key: cardId, Value: { importedAt, matchedByBenefit }
@@ -45,36 +43,13 @@ function getMatchedTransactions(
     return cached.matchedByBenefit;
   }
 
-  // Run matcher once for all benefits on this card
-  const credits: ParsedTransaction[] = cardStore.transactions
-    .filter(tx => isBenefitCredit(tx.amount, tx.description, cardId, tx.type))
-    .map(tx => ({
-      date: new Date(tx.date),
-      description: tx.description,
-      amount: tx.amount,
-    }));
-
-  if (credits.length === 0) {
+  const matchedCredits = getMatchedCredits(cardStore.transactions, cardId, allDefinitions);
+  if (matchedCredits.length === 0) {
     matchCache.set(cardId, { importedAt: cardStore.importedAt, matchedByBenefit: {} });
     return {};
   }
 
-  const cardDefinitions = allDefinitions.filter(d => d.cardId === cardId);
-  const result = matchCredits(credits, cardId as CardType, cardDefinitions);
-
-  // Group matched credits by benefit ID
-  const matchedByBenefit: Record<string, StoredTransaction[]> = {};
-  for (const mc of result.matchedCredits) {
-    if (!mc.benefitId) continue; // Skip unmatched
-    if (!matchedByBenefit[mc.benefitId]) {
-      matchedByBenefit[mc.benefitId] = [];
-    }
-    matchedByBenefit[mc.benefitId].push({
-      date: mc.transaction.date.toISOString(),
-      description: mc.transaction.description,
-      amount: mc.creditAmount,
-    });
-  }
+  const matchedByBenefit = groupMatchedCreditsByBenefit(matchedCredits);
 
   matchCache.set(cardId, { importedAt: cardStore.importedAt, matchedByBenefit });
   return matchedByBenefit;
